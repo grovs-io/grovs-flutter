@@ -1,7 +1,9 @@
-name: grovs
-description: "A new Flutter plugin project."
-version: 0.0.1
-homepage:
+name: grovs_flutter_plugin
+description: Flutter plugin for Grovs SDK - Deep linking, smart links, user messaging, and campaign tracking for mobile apps.
+version: 1.0.0
+homepage: https://grovs.io
+repository: https://github.com/grovs-io/grovs-flutter
+issue_tracker: https://github.com/grovs-io/grovs-flutter/issues
 
 environment:
   sdk: ^3.9.2
@@ -35,7 +37,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.grovs
+        package: io.grovs.wrapper
         pluginClass: GrovsPlugin
       ios:
         pluginClass: GrovsPlugin

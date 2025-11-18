@@ -1,5 +1,18 @@
-group = "com.example.grovs"
+group = "io.grovs.wrapper"
 version = "1.0-SNAPSHOT"
+
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
+}
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
 
 buildscript {
     ext.kotlin_version = "2.1.0"
@@ -25,7 +38,7 @@ apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
 android {
-    namespace = "com.example.grovs"
+    namespace = "io.grovs.wrapper"
 
     compileSdk = 36
 
@@ -48,6 +61,8 @@ android {
     }
 
     dependencies {
+        compileOnly files("$flutterRoot/bin/cache/artifacts/engine/android-arm/flutter.jar")
+        implementation("io.grovs:Grovs:1.1.0")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.mockito:mockito-core:5.0.0")
     }
