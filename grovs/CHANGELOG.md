@@ -1,3 +1,11 @@
+## 1.0.1
+
+* Documentation improvements
+* Added iOS Associated Domains configuration instructions
+* Enhanced API documentation with comprehensive examples
+* Updated README with complete setup guide
+* Improved code comments and inline documentation
+
 ## 1.0.0
 
 * Initial release of Grovs Flutter Plugin
