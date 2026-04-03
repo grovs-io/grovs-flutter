@@ -1,24 +1,49 @@
-# Grovs Flutter Plugin
+<p align="center">
+  <a href="https://grovs.io">
+    <img src="https://s3.eu-north-1.amazonaws.com/grovs.io/full-black.svg" alt="Grovs" width="220" />
+  </a>
+</p>
 
-A Flutter plugin for integrating the [Grovs](https://grovs.io) SDK, enabling deep linking, universal linking, smart link generation with tracking parameters, and user attribution in your Flutter applications.
+<p align="center">
+  Deep linking, attribution, and smart links for Flutter.<br/>
+  Part of the <a href="https://github.com/grovs-io">Grovs</a> open-source mobile linking platform.
+</p>
+
+<p align="center">
+  <a href="https://docs.grovs.io/docs/sdk/flutter/quick-start">Quick Start</a> ·
+  <a href="https://docs.grovs.io/docs/sdk/flutter/api-reference">API Reference</a> ·
+  <a href="https://docs.grovs.io">Full Docs</a>
+</p>
+
+---
+
+The Grovs Flutter SDK provides deep linking, app links, universal links, link generation, in-app messaging, revenue tracking, and attribution for your Flutter apps. It wraps the native iOS and Android SDKs.
 
 ## Features
 
-- 🔗 **Deep Linking**: Generate and handle Grovs links with automatic lifecycle management
-- 📱 **Universal Links**: Support for both Android App Links and iOS Universal Links
-- � **Attribution Tracking**: UTM campaign tracking with campaign, source, and medium parameters
-- � **User Management**: Set user identifiers and attributes for personalized experiences
-- 🎯 **Custom Redirects**: Platform-specific redirect URLs for iOS, Android, and desktop
-- 💰 **Revenue Tracking**: Track in-app purchases and custom transactions for revenue attribution
-- ⚡ **Auto-Configuration**: Platform configuration via AndroidManifest.xml and Info.plist
+- **Deep linking & universal links** — route users to the right in-app screen, even after install
+- **Smart link generation** — create trackable links with metadata, custom redirects, and UTM parameters
+- **In-app messaging** — display messages and announcements from the Grovs dashboard
+- **Push notifications** — receive push notifications for dashboard-sent messages
+- **Revenue tracking** — log App Store, Google Play, and custom purchases with automatic attribution
+- **User identity** — attach user IDs and attributes for analytics and segmentation
+- **Self-hosting support** — point the SDK at your own backend
+- **Auto-configuration** — platform config via `AndroidManifest.xml` and `Info.plist`
+
+## Requirements
+
+- Flutter 3.3.0+
+- Dart 3.9.2+
+- iOS 13.0+
+- Android API 21+ (Android 5.0)
 
 ## Installation
 
-Add this to your package's `pubspec.yaml` file:
+Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^1.0.1
+  grovs_flutter_plugin: ^1.1.0
 ```
 
 Then run:
@@ -31,13 +56,12 @@ flutter pub get
 
 ### Android
 
-1. **Add Configuration to AndroidManifest.xml**
+**1. Add configuration to `AndroidManifest.xml`**
 
-Add the Grovs API key and environment setting to `android/app/src/main/AndroidManifest.xml`:
+Add the Grovs API key and environment setting inside the `<application>` tag in `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
 <application>
-    <!-- Grovs Configuration -->
     <meta-data
         android:name="grovs_api_key"
         android:value="YOUR_API_KEY" />
@@ -48,49 +72,47 @@ Add the Grovs API key and environment setting to `android/app/src/main/AndroidMa
     <!-- Optional: Custom base URL for self-hosted backends -->
     <meta-data
         android:name="grovs_base_url"
-        android:value="https://your-custom-domain.com" />
-    
-    <!-- Your other configuration -->
+        android:value="https://your-domain.com" />
 </application>
 ```
 
-2. **Add Intent Filters**
+**2. Add intent filters**
 
-Configure deep link schemes in your main activity:
+Add these to your main activity for deep link handling:
 
 ```xml
 <activity android:name=".MainActivity">
-    <!-- Custom URL Scheme -->
+    <!-- Custom URL scheme -->
     <intent-filter>
-        <data android:scheme="myapp" android:host="open" />
+        <data android:scheme="your_app_scheme" android:host="open" />
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
     </intent-filter>
 
-    <!-- Universal links (production) -->
+    <!-- App links (production) -->
     <intent-filter android:autoVerify="true">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="https" android:host="your_grovs_host" />
+        <data android:scheme="https" android:host="your_app_host" />
     </intent-filter>
 
-    <!-- Universal links (test) -->
+    <!-- App links (test) -->
     <intent-filter android:autoVerify="true">
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="https" android:host="your_grovs_test_host" />
+        <data android:scheme="https" android:host="your_app_test_host" />
     </intent-filter>
 </activity>
 ```
 
 ### iOS
 
-1. **Add Configuration to Info.plist**
+**1. Add configuration to `Info.plist`**
 
-Add the Grovs API key and environment setting to `ios/Runner/Info.plist`:
+Add to `ios/Runner/Info.plist`:
 
 ```xml
 <key>GrovsApiKey</key>
@@ -100,12 +122,12 @@ Add the Grovs API key and environment setting to `ios/Runner/Info.plist`:
 
 <!-- Optional: Custom base URL for self-hosted backends -->
 <key>GrovsBaseURL</key>
-<string>https://your-custom-domain.com</string>
+<string>https://your-domain.com</string>
 ```
 
-2. **Configure URL Schemes**
+**2. Configure URL schemes**
 
-Add custom URL scheme support:
+Add custom URL scheme support to `Info.plist`:
 
 ```xml
 <key>CFBundleURLTypes</key>
@@ -113,164 +135,238 @@ Add custom URL scheme support:
     <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-            <string>your_grovs_url_scheme</string>
+            <string>your_app_scheme</string>
         </array>
     </dict>
 </array>
 ```
 
-3. **Configure Associated Domains in Xcode**
+**3. Configure Associated Domains**
 
-For universal links support:
+1. Open your project in Xcode
+2. Select your app target → **Signing & Capabilities** tab
+3. Click **+ Capability** → add **Associated Domains**
+4. Add `applinks:your_app_host` and `applinks:your_app_test_host`
 
-- Open your project in Xcode
-- Select your project in the Project Navigator
-- Under **Targets**, select your app target
-- Go to the **Signing & Capabilities** tab
-- Click the **+ Capability** button
-- Find and double-click **Associated Domains**
-- In the Associated Domains section, click the **+** button to add a new domain
-- Add your domains in the format `applinks:your_grovs_host`
-  - Get these values from your Grovs dashboard
-  - Add both production and test environment domains (e.g., `applinks:your_grovs_host` and `applinks:your_grovs_test_host`)
+## Quick Start
 
-## Usage
-
-### Set logging level and user
-
-You can configure the logging level and set the user attributes using:
+### Initialize and configure
 
 ```dart
 import 'package:grovs_flutter_plugin/grovs.dart';
 
-// Initialize Grovs SDK
 final grovs = Grovs();
-try {
-  await grovs.setDebugLevel('info');
 
-  // Set user information (optional)
-  await grovs.setUserIdentifier('demo-user-123');
-  await grovs.setUserAttributes({
-    'name': 'Demo User',
-    'email': 'demo@example.com',
-    'app': 'Flutter Demo',
-  });
-} catch (e) {
-  print('Failed to configure Grovs: $e');
-}
+// Optional: enable debug logging
+await grovs.setDebugLevel('info');
+
+// Optional: set user identity for analytics
+await grovs.setUserIdentifier('user_id_from_your_app');
+await grovs.setUserAttributes({
+  'name': 'John Doe',
+  'plan': 'premium',
+});
 ```
 
-### Handle deeplinks
+### Handle deep links
 
-Handling the deeplinks that opened the app:
+Subscribe to the `onDeeplinkReceived` stream to handle incoming deep links:
 
 ```dart
+import 'dart:async';
 import 'package:grovs_flutter_plugin/grovs.dart';
 
-StreamSubscription<DeeplinkDetails>? _deeplinkSubscription;
+StreamSubscription<DeeplinkDetails>? _subscription;
 
-void setupDeeplinkListener() {
-  _deeplinkSubscription = _grovs.onDeeplinkReceived.listen((deeplinkDetails) {
-    // Handle your link
+@override
+void initState() {
+  super.initState();
+  _subscription = grovs.onDeeplinkReceived.listen((details) {
+    final link = details.link;
+    final payload = details.data;
+    final tracking = details.tracking;
+
+    print('Opened from: $link');
+
+    // Route the user based on payload
+    if (payload?['screen'] == 'product') {
+      navigateToProduct(payload?['productId']);
+    }
   });
 }
 
 @override
 void dispose() {
-  _deeplinkSubscription?.cancel();
+  _subscription?.cancel();
   super.dispose();
 }
 ```
 
-### Generate Links with Tracking
+## Link Generation
+
+Create smart links with metadata, payload data, and tracking parameters:
 
 ```dart
 import 'package:grovs_flutter_plugin/grovs.dart';
 import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 
-Future<String> generateShareLink() async {
-  try {
-    final link = await Grovs.generateLink(
-      GenerateLinkParams(
-        title: 'Check out this amazing product!',
-        subtitle: 'Limited time offer',
-        imageUrl: 'https://example.com/product-image.png',
-        payload: {
-          'screen': 'product',
-          'productId': '12345',
-          'source': 'share',
-        },
-        tags: ['promotion', 'product-share'],
-        tracking: TrackingParams(
-          utmCampaign: 'spring_sale',
-          utmSource: 'email',
-          utmMedium: 'newsletter',
-        ),
-        customRedirects: {
-          'ios': 'https://my-custom-ios-redirect.com',
-          'android': 'https://my-custom-android-redirect.com',
-          'desktop': 'https://my-custom-desktop-redirect.com',
-        },
+try {
+  final link = await grovs.generateLink(
+    GenerateLinkParams(
+      title: 'Check out this product',
+      subtitle: 'Limited time offer',
+      imageURL: 'https://example.com/image.jpg',
+      data: {
+        'screen': 'product',
+        'productId': '12345',
+      },
+      tags: ['promotion', 'share'],
+      tracking: TrackingParams(
+        utmCampaign: 'spring_sale',
+        utmSource: 'in_app',
+        utmMedium: 'share_button',
       ),
-    );
-    
-    print('Generated link: $link');
-    return link;
-  } on GrovsException catch (e) {
-    print('Failed to generate link: ${e.message}');
-    rethrow;
-  }
+    ),
+  );
+  print('Generated: $link');
+} on GrovsException catch (e) {
+  print('Error: ${e.message}');
 }
 ```
 
-### Revenue Tracking
+### Custom redirects
 
-Track in-app purchases and custom transactions for revenue attribution:
+Override where a link sends users on each platform:
 
 ```dart
-import 'package:grovs_flutter_plugin/grovs.dart';
-import 'package:grovs_flutter_plugin/models/grovs_link.dart';
+final link = await grovs.generateLink(
+  GenerateLinkParams(
+    title: 'Special offer',
+    data: {'promoId': 'summer25'},
+    customRedirects: CustomRedirects(
+      ios: CustomLinkRedirect(url: 'https://example.com/ios-promo'),
+      android: CustomLinkRedirect(url: 'https://example.com/android-promo'),
+      desktop: CustomLinkRedirect(url: 'https://example.com/desktop-promo', openAppIfInstalled: false),
+    ),
+  ),
+);
+```
 
-final grovs = Grovs();
+### Share dialog
 
-// Log a platform store purchase
+Launch the platform share sheet after generating a link:
+
+```dart
+import 'package:share_plus/share_plus.dart';
+
+final link = await grovs.generateLink(
+  GenerateLinkParams(title: 'Share this', data: {'itemId': 'abc'}),
+);
+Share.share(link);
+```
+
+## Messages
+
+> If console messages have **automatic display** enabled in your dashboard, they will appear in your app without any additional integration.
+
+### Push notifications
+
+Pass the device token to receive push notifications for dashboard-sent messages:
+
+```dart
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Get and set the token
+final token = await FirebaseMessaging.instance.getToken();
+if (token != null) {
+  await grovs.setPushToken(token);
+}
+
+// Listen for token refreshes
+FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+  grovs.setPushToken(newToken);
+});
+```
+
+Upload your Firebase or APNs credentials in the [Grovs dashboard](https://app.grovs.io) under your platform's push notification settings.
+
+> Push notifications require a physical device. They do not work in the iOS Simulator.
+
+## Revenue Tracking
+
+> Revenue tracking is currently in **beta**.
+
+### Setup
+
+1. Enable revenue tracking in the [Grovs dashboard](https://app.grovs.io) under **Settings → Revenue Tracking**
+2. Configure platform notifications:
+   - **Android** — Set up Google Play Real-Time Developer Notifications
+   - **iOS** — Configure App Store Server Notifications in App Store Connect
+
+### Platform store purchases
+
+```dart
 // iOS: pass the StoreKit transaction ID as a string
 // Android: pass the purchase originalJson string
-await grovs.logInAppPurchase('12345');
+await grovs.logInAppPurchase('transaction_id_or_json');
+```
 
-// Log a custom purchase (e.g. Stripe, PayPal)
+> The SDK automatically extracts price, currency, and product info. Duplicates are filtered.
+
+### Custom purchases
+
+```dart
+import 'package:grovs_flutter_plugin/models/grovs_link.dart';
+
 await grovs.logCustomPurchase(
   type: TransactionType.buy,
-  priceInCents: 999,    // $9.99
-  currency: 'USD',
-  productId: 'premium_monthly',
-);
-
-// Log a refund
-await grovs.logCustomPurchase(
-  type: TransactionType.refund,
-  priceInCents: 999,
+  priceInCents: 999,       // $9.99
   currency: 'USD',
   productId: 'premium_monthly',
 );
 ```
 
-## Additional Resources
+Use `.cancel` and `.refund` transaction types for cancellations and refunds. For store purchases, these are detected automatically via platform server notifications.
 
-- 🌐 [Grovs.io](https://grovs.io) - Official website
-- 📖 [Quick Start Guide](https://docs.grovs.io/s/docs) - Check out the official documentation
+## API Reference
 
-## Platform Support
+### Properties
 
-- **iOS**: 13.0+
-- **Android**: API Level 21+ (Android 5.0 Lollipop)
+| Property | Type | Description |
+|---|---|---|
+| `onDeeplinkReceived` | `Stream<DeeplinkDetails>` | Stream of deep link events |
 
-## License
+### Key Methods
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+| Method | Description |
+|---|---|
+| `setDebugLevel(level)` | Set logging level (`'info'`, `'error'`) |
+| `setPushToken(token)` | Set FCM/APNs push token |
+| `setUserIdentifier(identifier)` | Set user ID for dashboard and reports |
+| `setUserAttributes(attributes)` | Set user attributes for analytics |
+| `generateLink(params)` | Generate a smart link |
+| `logInAppPurchase(transactionId)` | Log a store purchase |
+| `logCustomPurchase(type, priceInCents, currency, productId, startDate)` | Log a custom purchase |
+
+Full API reference: [docs.grovs.io/docs/sdk/flutter/api-reference](https://docs.grovs.io/docs/sdk/flutter/api-reference)
+
+## Example App
+
+A demo project is included in the [`example/`](example/) directory.
+
+## Migration Guides
+
+- [Migrate from Firebase Dynamic Links](https://docs.grovs.io/docs/migration-guides/firebase-dynamic-links/android)
+- [Migrate from Branch.io](https://docs.grovs.io/docs/migration-guides/branch-io/android)
+
+## Documentation
+
+Full documentation at [docs.grovs.io](https://docs.grovs.io).
 
 ## Support
 
-For issues and questions:
-- 📧 Visit [https://grovs.io](https://grovs.io)
-- 🐛 Report issues on [GitHub](https://github.com/grovs-io/grovs-flutter/issues)
+For technical support and inquiries, contact [support@grovs.io](mailto:support@grovs.io).
+
+## License
+
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
