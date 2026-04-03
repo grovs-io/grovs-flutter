@@ -1,6 +1,6 @@
 name: grovs_flutter_plugin
 description: Flutter plugin for Grovs SDK - Deep linking, smart links, user messaging, and campaign tracking for mobile apps.
-version: 1.0.1
+version: 1.1.0
 homepage: https://grovs.io
 repository: https://github.com/grovs-io/grovs-flutter
 issue_tracker: https://github.com/grovs-io/grovs-flutter/issues

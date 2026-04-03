@@ -1,3 +1,10 @@
+## 1.1.0
+
+* Added custom base URL support via Info.plist (iOS) and AndroidManifest.xml (Android)
+* Added revenue tracking with `logInAppPurchase` and `logCustomPurchase` methods
+* Added `TransactionType` enum (buy, cancel, refund)
+* Bumped iOS SDK to ~> 2.3 and Android SDK to 1.1.1
+
 ## 1.0.1
 
 * Documentation improvements
