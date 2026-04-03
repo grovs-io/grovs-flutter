@@ -53,6 +53,22 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('setDebugLevel() has not been implemented.');
   }
 
+  /// Log an in-app purchase from the platform store
+  Future<void> logInAppPurchase(String transactionId) {
+    throw UnimplementedError('logInAppPurchase() has not been implemented.');
+  }
+
+  /// Log a custom purchase
+  Future<void> logCustomPurchase({
+    required TransactionType type,
+    required int priceInCents,
+    required String currency,
+    required String productId,
+    DateTime? startDate,
+  }) {
+    throw UnimplementedError('logCustomPurchase() has not been implemented.');
+  }
+
   /// Stream of deeplink events
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     throw UnimplementedError('onDeeplinkReceived has not been implemented.');

@@ -9,6 +9,7 @@ A Flutter plugin for integrating the [Grovs](https://grovs.io) SDK, enabling dee
 - � **Attribution Tracking**: UTM campaign tracking with campaign, source, and medium parameters
 - � **User Management**: Set user identifiers and attributes for personalized experiences
 - 🎯 **Custom Redirects**: Platform-specific redirect URLs for iOS, Android, and desktop
+- 💰 **Revenue Tracking**: Track in-app purchases and custom transactions for revenue attribution
 - ⚡ **Auto-Configuration**: Platform configuration via AndroidManifest.xml and Info.plist
 
 ## Installation
@@ -43,6 +44,11 @@ Add the Grovs API key and environment setting to `android/app/src/main/AndroidMa
     <meta-data
         android:name="grovs_use_test_environment"
         android:value="true" /> <!-- Set to false for production -->
+
+    <!-- Optional: Custom base URL for self-hosted backends -->
+    <meta-data
+        android:name="grovs_base_url"
+        android:value="https://your-custom-domain.com" />
     
     <!-- Your other configuration -->
 </application>
@@ -91,6 +97,10 @@ Add the Grovs API key and environment setting to `ios/Runner/Info.plist`:
 <string>YOUR_API_KEY</string>
 <key>GrovsUseTestEnvironment</key>
 <true/> <!-- Set to <false/> for production -->
+
+<!-- Optional: Custom base URL for self-hosted backends -->
+<key>GrovsBaseURL</key>
+<string>https://your-custom-domain.com</string>
 ```
 
 2. **Configure URL Schemes**
@@ -211,6 +221,38 @@ Future<String> generateShareLink() async {
     rethrow;
   }
 }
+```
+
+### Revenue Tracking
+
+Track in-app purchases and custom transactions for revenue attribution:
+
+```dart
+import 'package:grovs_flutter_plugin/grovs.dart';
+import 'package:grovs_flutter_plugin/models/grovs_link.dart';
+
+final grovs = Grovs();
+
+// Log a platform store purchase
+// iOS: pass the StoreKit transaction ID as a string
+// Android: pass the purchase originalJson string
+await grovs.logInAppPurchase('12345');
+
+// Log a custom purchase (e.g. Stripe, PayPal)
+await grovs.logCustomPurchase(
+  type: TransactionType.buy,
+  priceInCents: 999,    // $9.99
+  currency: 'USD',
+  productId: 'premium_monthly',
+);
+
+// Log a refund
+await grovs.logCustomPurchase(
+  type: TransactionType.refund,
+  priceInCents: 999,
+  currency: 'USD',
+  productId: 'premium_monthly',
+);
 ```
 
 ## Additional Resources

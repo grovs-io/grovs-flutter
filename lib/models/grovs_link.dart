@@ -157,3 +157,15 @@ class GrovsException implements Exception {
   String toString() =>
       'GrovsException: $message${code != null ? ' (code: $code)' : ''}';
 }
+
+/// Type of transaction for revenue tracking
+enum TransactionType {
+  /// A purchase transaction
+  buy,
+
+  /// A cancellation transaction
+  cancel,
+
+  /// A refund transaction
+  refund,
+}

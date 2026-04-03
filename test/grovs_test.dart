@@ -29,6 +29,19 @@ class MockGrovsPlatform
   Future<void> setDebugLevel(String level) => Future.value();
 
   @override
+  Future<void> logInAppPurchase(String transactionId) => Future.value();
+
+  @override
+  Future<void> logCustomPurchase({
+    required TransactionType type,
+    required int priceInCents,
+    required String currency,
+    required String productId,
+    DateTime? startDate,
+  }) =>
+      Future.value();
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived => Stream.empty();
 }
 

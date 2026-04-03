@@ -52,7 +52,8 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         // Read API key and test environment flag from Info.plist
         if let infoDictionary = Bundle.main.infoDictionary, let apiKey = infoDictionary["GrovsApiKey"] as? String {
             let useTestEnvironment = infoDictionary["GrovsUseTestEnvironment"] as? Bool ?? false
-            Grovs.configure(APIKey: apiKey, useTestEnvironment: useTestEnvironment, delegate: self)
+            let baseURL = infoDictionary["GrovsBaseURL"] as? String
+            Grovs.configure(APIKey: apiKey, useTestEnvironment: useTestEnvironment, baseURL: baseURL, delegate: self)
         }
         
         return true
@@ -206,6 +207,59 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.setDebug(level: debugLevel)
             result(nil)
             
+        case "logInAppPurchase":
+            guard let args = call.arguments as? [String: Any],
+                  let transactionIdString = args["transactionId"] as? String,
+                  let transactionId = UInt64(transactionIdString) else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "transactionId is required", details: nil))
+                return
+            }
+
+            Grovs.logInAppPurchase(transactionID: transactionId) { success in
+                if success {
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "PAYMENT_ERROR", message: "Failed to log in-app purchase", details: nil))
+                }
+            }
+
+        case "logCustomPurchase":
+            guard let args = call.arguments as? [String: Any],
+                  let typeString = args["type"] as? String,
+                  let priceInCents = args["priceInCents"] as? Int,
+                  let currency = args["currency"] as? String,
+                  let productId = args["productId"] as? String else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "type, priceInCents, currency, and productId are required", details: nil))
+                return
+            }
+
+            let type: TransactionType
+            switch typeString {
+            case "buy":
+                type = .buy
+            case "cancel":
+                type = .cancel
+            case "refund":
+                type = .refund
+            default:
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "Invalid transaction type: \(typeString)", details: nil))
+                return
+            }
+
+            var startDate: Date?
+            if let dateString = args["startDate"] as? String {
+                let formatter = ISO8601DateFormatter()
+                startDate = formatter.date(from: dateString)
+            }
+
+            Grovs.logCustomPurchase(type: type, priceInCents: priceInCents, currency: currency, productID: productId, startDate: startDate) { success in
+                if success {
+                    result(nil)
+                } else {
+                    result(FlutterError(code: "PAYMENT_ERROR", message: "Failed to log custom purchase", details: nil))
+                }
+            }
+
         default:
             result(FlutterMethodNotImplemented)
         }

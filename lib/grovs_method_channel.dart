@@ -96,6 +96,44 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<void> logInAppPurchase(String transactionId) async {
+    try {
+      await methodChannel.invokeMethod('logInAppPurchase', {
+        'transactionId': transactionId,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to log in-app purchase',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> logCustomPurchase({
+    required TransactionType type,
+    required int priceInCents,
+    required String currency,
+    required String productId,
+    DateTime? startDate,
+  }) async {
+    try {
+      await methodChannel.invokeMethod('logCustomPurchase', {
+        'type': type.name,
+        'priceInCents': priceInCents,
+        'currency': currency,
+        'productId': productId,
+        'startDate': startDate?.toIso8601String(),
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to log custom purchase',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     _onDeeplinkReceived ??= eventChannel.receiveBroadcastStream().map((
       dynamic event,

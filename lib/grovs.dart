@@ -116,6 +116,61 @@ class Grovs {
     return GrovsPlatform.instance.setPushToken(token);
   }
 
+  /// Log an in-app purchase from the platform store
+  ///
+  /// Tracks a store purchase for revenue attribution.
+  ///
+  /// [transactionId] - The platform-specific transaction identifier:
+  /// - iOS: The StoreKit transaction ID (pass as string, e.g. `transaction.id.description`)
+  /// - Android: The purchase original JSON (e.g. `purchase.originalJson`)
+  ///
+  /// Throws [GrovsException] if the operation fails
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().logInAppPurchase('12345');
+  /// ```
+  Future<void> logInAppPurchase(String transactionId) {
+    return GrovsPlatform.instance.logInAppPurchase(transactionId);
+  }
+
+  /// Log a custom purchase for revenue tracking
+  ///
+  /// Tracks a non-store purchase (e.g. Stripe, PayPal) for revenue attribution.
+  ///
+  /// [type] - The transaction type: buy, cancel, or refund
+  /// [priceInCents] - The price in cents (e.g. 999 for $9.99)
+  /// [currency] - ISO 4217 currency code (e.g. 'USD', 'EUR')
+  /// [productId] - A unique product identifier
+  /// [startDate] - Optional transaction date (defaults to now on the native side)
+  ///
+  /// Throws [GrovsException] if the operation fails
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().logCustomPurchase(
+  ///   type: TransactionType.buy,
+  ///   priceInCents: 999,
+  ///   currency: 'USD',
+  ///   productId: 'premium_monthly',
+  /// );
+  /// ```
+  Future<void> logCustomPurchase({
+    required TransactionType type,
+    required int priceInCents,
+    required String currency,
+    required String productId,
+    DateTime? startDate,
+  }) {
+    return GrovsPlatform.instance.logCustomPurchase(
+      type: type,
+      priceInCents: priceInCents,
+      currency: currency,
+      productId: productId,
+      startDate: startDate,
+    );
+  }
+
   /// Stream of deeplink events
   ///
   /// Listen to this stream to receive deeplink events when a user opens your app via a Grovs link.

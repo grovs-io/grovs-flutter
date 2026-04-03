@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.grovs.model.events.PaymentEventType
 import java.io.Serializable
 import java.lang.ref.WeakReference
 
@@ -79,7 +80,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val meta = app.packageManager.getApplicationInfo(app.packageName, PackageManager.GET_META_DATA).metaData
         val apiKey = meta.getString("grovs_api_key")
         val useTestEnvironment = meta.getBoolean("grovs_use_test_environment", false)
-        Grovs.configure(application, apiKey ?: "", useTestEnvironment)
+        val baseURL = meta.getString("grovs_base_url")
+        Grovs.configure(application, apiKey ?: "", useTestEnvironment, baseURL)
     }
 
     private fun setupDeeplinkListener() {
@@ -251,6 +253,52 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
             
+            "logInAppPurchase" -> {
+                val transactionId = call.argument<String>("transactionId")
+
+                if (transactionId == null) {
+                    result.error("INVALID_ARGUMENT", "transactionId is required", null)
+                    return
+                }
+
+                try {
+                    Grovs.logInAppPurchase(transactionId)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("PAYMENT_ERROR", e.message, null)
+                }
+            }
+
+            "logCustomPurchase" -> {
+                val typeString = call.argument<String>("type")
+                val priceInCents = call.argument<Int>("priceInCents")
+                val currency = call.argument<String>("currency")
+                val productId = call.argument<String>("productId")
+                val startDateString = call.argument<String>("startDate")
+
+                if (typeString == null || priceInCents == null || currency == null || productId == null) {
+                    result.error("INVALID_ARGUMENT", "type, priceInCents, currency, and productId are required", null)
+                    return
+                }
+
+                val type = when (typeString) {
+                    "buy" -> PaymentEventType.BUY
+                    "cancel" -> PaymentEventType.CANCEL
+                    "refund" -> PaymentEventType.REFUND
+                    else -> {
+                        result.error("INVALID_ARGUMENT", "Invalid transaction type: $typeString", null)
+                        return
+                    }
+                }
+
+                try {
+                    Grovs.logCustomPurchase(type, priceInCents, currency, productId)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("PAYMENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }

@@ -302,6 +302,55 @@ class _MyAppState extends State<MyApp> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
+                        'Revenue Tracking',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            await _grovs.logCustomPurchase(
+                              type: TransactionType.buy,
+                              priceInCents: 999,
+                              currency: 'USD',
+                              productId: 'premium_monthly',
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Custom purchase logged!'),
+                                ),
+                              );
+                            }
+                          } on GrovsException catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to log purchase: ${e.message}',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Log Custom Purchase (\$9.99)'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
                         'Last Deeplink Received',
                         style: TextStyle(
                           fontSize: 18,
