@@ -1,7 +1,8 @@
 <p align="center">
-  <a href="https://grovs.io">
-    <img src="https://s3.eu-north-1.amazonaws.com/grovs.io/full-black.svg" alt="Grovs" width="220" />
-  </a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://s3.eu-north-1.amazonaws.com/grovs.io/full-white.svg">
+    <img src="https://s3.eu-north-1.amazonaws.com/grovs.io/full-black.svg" width="120" alt="Grovs">
+  </picture>
 </p>
 
 <p align="center">
