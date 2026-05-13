@@ -6,6 +6,15 @@
 </p>
 
 <p align="center">
+  <a href="https://pub.dev/packages/grovs_flutter_plugin"><img src="https://img.shields.io/pub/v/grovs_flutter_plugin?style=flat-square&color=4F46E5" alt="Pub version"/></a>
+  <a href="https://pub.dev/packages/grovs_flutter_plugin/score"><img src="https://img.shields.io/pub/points/grovs_flutter_plugin?style=flat-square&color=4F46E5" alt="Pub points"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/platforms-iOS%20%7C%20Android-4F46E5?style=flat-square" alt="Platforms"/></a>
+  <a href="#"><img src="https://img.shields.io/badge/flutter-3.0%2B-4F46E5?style=flat-square&logo=flutter&logoColor=white" alt="Flutter"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/grovs-io/grovs-flutter?style=flat-square&color=4F46E5" alt="MIT License"/></a>
+  <a href="https://github.com/grovs-io/grovs-flutter/stargazers"><img src="https://img.shields.io/github/stars/grovs-io/grovs-flutter?style=flat-square&color=4F46E5" alt="GitHub stars"/></a>
+</p>
+
+<p align="center">
   Deep linking, attribution, and smart links for Flutter.<br/>
   Part of the <a href="https://github.com/grovs-io">Grovs</a> open-source mobile linking platform.
 </p>
