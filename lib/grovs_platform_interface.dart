@@ -83,6 +83,14 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('setGlobalTags() has not been implemented.');
   }
 
+  /// Log a manual screen view
+  Future<void> trackScreenView(
+    String screenName, {
+    Map<String, dynamic>? properties,
+  }) {
+    throw UnimplementedError('trackScreenView() has not been implemented.');
+  }
+
   /// Stream of deeplink events
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     throw UnimplementedError('onDeeplinkReceived has not been implemented.');

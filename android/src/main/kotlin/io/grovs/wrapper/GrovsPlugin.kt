@@ -327,6 +327,23 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
 
+            "trackScreenView" -> {
+                val screenName = call.argument<String>("screenName")
+                val properties = call.argument<Map<String, Any>>("properties")
+
+                if (screenName == null) {
+                    result.error("INVALID_ARGUMENT", "screenName is required", null)
+                    return
+                }
+
+                try {
+                    Grovs.trackScreenView(screenName, properties)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("EVENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }

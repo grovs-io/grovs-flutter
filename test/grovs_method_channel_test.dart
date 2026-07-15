@@ -61,4 +61,21 @@ void main() {
       'tags': ['premium', 'beta'],
     });
   });
+
+  test('trackScreenView sends correct method and arguments', () async {
+    MethodCall? captured;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall call) async {
+      captured = call;
+      return null;
+    });
+
+    await platform.trackScreenView('Checkout', properties: {'step': 2});
+
+    expect(captured?.method, 'trackScreenView');
+    expect(captured?.arguments, {
+      'screenName': 'Checkout',
+      'properties': {'step': 2},
+    });
+  });
 }

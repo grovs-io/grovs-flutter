@@ -53,6 +53,13 @@ class MockGrovsPlatform
   Future<void> setGlobalTags(List<String>? tags) => Future.value();
 
   @override
+  Future<void> trackScreenView(
+    String screenName, {
+    Map<String, dynamic>? properties,
+  }) =>
+      Future.value();
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived => Stream.empty();
 }
 

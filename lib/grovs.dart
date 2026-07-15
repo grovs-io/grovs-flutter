@@ -218,6 +218,30 @@ class Grovs {
     return GrovsPlatform.instance.setGlobalTags(tags);
   }
 
+  /// Log a manual screen view
+  ///
+  /// Use this to track screens explicitly. For automatic tracking, add
+  /// [GrovsNavigatorObserver] to your `MaterialApp.navigatorObservers`.
+  ///
+  /// [screenName] - The screen name to record.
+  /// [properties] - Optional JSON-serializable metadata.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().trackScreenView('Checkout', properties: {'step': 2});
+  /// ```
+  Future<void> trackScreenView(
+    String screenName, {
+    Map<String, dynamic>? properties,
+  }) {
+    return GrovsPlatform.instance.trackScreenView(
+      screenName,
+      properties: properties,
+    );
+  }
+
   /// Stream of deeplink events
   ///
   /// Listen to this stream to receive deeplink events when a user opens your app via a Grovs link.

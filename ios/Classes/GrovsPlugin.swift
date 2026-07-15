@@ -278,6 +278,17 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.setGlobalTags(tags)
             result(nil)
 
+        case "trackScreenView":
+            guard let args = call.arguments as? [String: Any],
+                  let screenName = args["screenName"] as? String else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "screenName is required", details: nil))
+                return
+            }
+
+            let properties = args["properties"] as? [String: Any]
+            Grovs.trackScreenView(screenName, properties: properties)
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }

@@ -166,6 +166,24 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<void> trackScreenView(
+    String screenName, {
+    Map<String, dynamic>? properties,
+  }) async {
+    try {
+      await methodChannel.invokeMethod('trackScreenView', {
+        'screenName': screenName,
+        'properties': properties,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to track screen view',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     _onDeeplinkReceived ??= eventChannel.receiveBroadcastStream().map((
       dynamic event,
