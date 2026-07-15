@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:grovs_flutter_plugin/grovs.dart';
+import 'package:grovs_flutter_plugin/grovs_navigator_observer.dart';
 import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -174,6 +175,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      navigatorObservers: <GrovsNavigatorObserver>[Grovs.navigatorObserver],
       home: Scaffold(
         appBar: AppBar(title: const Text('Grovs Flutter Example'), actions: []),
         body: SingleChildScrollView(
@@ -338,6 +340,56 @@ class _MyAppState extends State<MyApp> {
                           }
                         },
                         child: const Text('Log Custom Purchase (\$9.99)'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Analytics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await Grovs().track(
+                            'demo_button_tapped',
+                            properties: {'source': 'example_app'},
+                            tags: ['demo'],
+                          );
+                        },
+                        child: const Text('Track custom event'),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              settings: const RouteSettings(
+                                name: 'DemoSecondScreen',
+                              ),
+                              builder: (_) => Scaffold(
+                                appBar: AppBar(
+                                  title: const Text('Second screen'),
+                                ),
+                                body: const Center(
+                                  child: Text('Auto screen view fired'),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Open second screen'),
                       ),
                     ],
                   ),

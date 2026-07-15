@@ -338,6 +338,63 @@ await grovs.logCustomPurchase(
 
 Use `.cancel` and `.refund` transaction types for cancellations and refunds. For store purchases, these are detected automatically via platform server notifications.
 
+## Analytics
+
+Track custom events, screen views, and tags. Lifecycle events
+(`install`, `app_open`, `time_spent`, `reactivation`) are recorded
+automatically by the native SDK — no setup required.
+
+### Custom events
+
+```dart
+await Grovs().track(
+  'signup_completed',
+  properties: {'plan': 'pro'},
+  tags: ['onboarding'],
+);
+```
+
+Event names must not be empty or one of the reserved names: `view`, `open`,
+`install`, `reinstall`, `app_open`, `time_spent`, `reactivation`,
+`user_referred`, `custom`, `screen_view`. Properties are capped at 8 KB and
+tags at 20 (enforced natively).
+
+### Global tags
+
+```dart
+await Grovs().setGlobalTags(['premium', 'beta']); // pass null to clear
+```
+
+### Automatic screen tracking
+
+Add the observer to your `MaterialApp`:
+
+```dart
+MaterialApp(
+  navigatorObservers: [Grovs.navigatorObserver],
+  // ...
+);
+```
+
+Screen names come from each route's `RouteSettings.name`. Unnamed routes fall
+back to the route's runtime type, which is obfuscated in release builds — name
+your routes or pass a `screenNameExtractor` to a custom
+`GrovsNavigatorObserver` for stable names.
+
+### Manual screen views
+
+```dart
+await Grovs().trackScreenView('Checkout', properties: {'step': 2});
+```
+
+### Screen aliases
+
+Map raw screen names to friendly dashboard names:
+
+```dart
+await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
+```
+
 ## API Reference
 
 ### Properties
