@@ -134,6 +134,26 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<void> track(
+    String name, {
+    Map<String, dynamic>? properties,
+    List<String>? tags,
+  }) async {
+    try {
+      await methodChannel.invokeMethod('track', {
+        'name': name,
+        'properties': properties,
+        'tags': tags,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to track event',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     _onDeeplinkReceived ??= eventChannel.receiveBroadcastStream().map((
       dynamic event,

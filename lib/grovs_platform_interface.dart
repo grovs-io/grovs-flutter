@@ -69,6 +69,15 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('logCustomPurchase() has not been implemented.');
   }
 
+  /// Log a custom analytics event
+  Future<void> track(
+    String name, {
+    Map<String, dynamic>? properties,
+    List<String>? tags,
+  }) {
+    throw UnimplementedError('track() has not been implemented.');
+  }
+
   /// Stream of deeplink events
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     throw UnimplementedError('onDeeplinkReceived has not been implemented.');

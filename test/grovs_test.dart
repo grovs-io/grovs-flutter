@@ -42,6 +42,14 @@ class MockGrovsPlatform
       Future.value();
 
   @override
+  Future<void> track(
+    String name, {
+    Map<String, dynamic>? properties,
+    List<String>? tags,
+  }) =>
+      Future.value();
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived => Stream.empty();
 }
 

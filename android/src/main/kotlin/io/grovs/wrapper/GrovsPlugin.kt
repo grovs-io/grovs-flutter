@@ -299,6 +299,24 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
 
+            "track" -> {
+                val name = call.argument<String>("name")
+                val properties = call.argument<Map<String, Any>>("properties")
+                val tags = call.argument<List<String>>("tags")
+
+                if (name == null) {
+                    result.error("INVALID_ARGUMENT", "name is required", null)
+                    return
+                }
+
+                try {
+                    Grovs.track(name, properties, tags)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("EVENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }

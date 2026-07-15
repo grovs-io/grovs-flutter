@@ -171,6 +171,39 @@ class Grovs {
     );
   }
 
+  /// Log a custom analytics event
+  ///
+  /// Records a named event with optional properties and tags. Events are
+  /// batched and sent by the native SDK.
+  ///
+  /// [name] - The event name. Must not be empty or a reserved name
+  /// (`view`, `open`, `install`, `reinstall`, `app_open`, `time_spent`,
+  /// `reactivation`, `user_referred`, `custom`, `screen_view`).
+  /// [properties] - Optional JSON-serializable key/value metadata (max 8 KB).
+  /// [tags] - Optional tags (max 20).
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().track(
+  ///   'signup_completed',
+  ///   properties: {'plan': 'pro'},
+  ///   tags: ['onboarding'],
+  /// );
+  /// ```
+  Future<void> track(
+    String name, {
+    Map<String, dynamic>? properties,
+    List<String>? tags,
+  }) {
+    return GrovsPlatform.instance.track(
+      name,
+      properties: properties,
+      tags: tags,
+    );
+  }
+
   /// Stream of deeplink events
   ///
   /// Listen to this stream to receive deeplink events when a user opens your app via a Grovs link.

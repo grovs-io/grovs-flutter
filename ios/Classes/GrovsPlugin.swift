@@ -260,6 +260,18 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
                 }
             }
 
+        case "track":
+            guard let args = call.arguments as? [String: Any],
+                  let name = args["name"] as? String else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "name is required", details: nil))
+                return
+            }
+
+            let properties = args["properties"] as? [String: Any]
+            let tags = args["tags"] as? [String]
+            Grovs.track(name, properties: properties, tags: tags)
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }

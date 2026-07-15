@@ -23,4 +23,26 @@ void main() {
   test('getPlatformVersion', () async {
     expect(await platform.getPlatformVersion(), '42');
   });
+
+  test('track sends correct method and arguments', () async {
+    MethodCall? captured;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall call) async {
+      captured = call;
+      return null;
+    });
+
+    await platform.track(
+      'signup_completed',
+      properties: {'plan': 'pro'},
+      tags: ['onboarding'],
+    );
+
+    expect(captured?.method, 'track');
+    expect(captured?.arguments, {
+      'name': 'signup_completed',
+      'properties': {'plan': 'pro'},
+      'tags': ['onboarding'],
+    });
+  });
 }
