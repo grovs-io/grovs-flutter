@@ -81,7 +81,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val apiKey = meta.getString("grovs_api_key")
         val useTestEnvironment = meta.getBoolean("grovs_use_test_environment", false)
         val baseURL = meta.getString("grovs_base_url")
-        Grovs.configure(application, apiKey ?: "", useTestEnvironment, baseURL)
+        Grovs.configure(application, apiKey ?: "", useTestEnvironment, baseURL, false)
     }
 
     private fun setupDeeplinkListener() {

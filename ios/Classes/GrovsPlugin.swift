@@ -53,7 +53,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         if let infoDictionary = Bundle.main.infoDictionary, let apiKey = infoDictionary["GrovsApiKey"] as? String {
             let useTestEnvironment = infoDictionary["GrovsUseTestEnvironment"] as? Bool ?? false
             let baseURL = infoDictionary["GrovsBaseURL"] as? String
-            Grovs.configure(APIKey: apiKey, useTestEnvironment: useTestEnvironment, baseURL: baseURL, delegate: self)
+            Grovs.configure(APIKey: apiKey, useTestEnvironment: useTestEnvironment, baseURL: baseURL, autoTrackScreenViews: false, delegate: self)
         }
         
         return true
