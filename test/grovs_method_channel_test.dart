@@ -78,4 +78,20 @@ void main() {
       'properties': {'step': 2},
     });
   });
+
+  test('setScreenAliases sends correct method and arguments', () async {
+    MethodCall? captured;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall call) async {
+      captured = call;
+      return null;
+    });
+
+    await platform.setScreenAliases({'/home': 'Home', '/cart': 'Cart'});
+
+    expect(captured?.method, 'setScreenAliases');
+    expect(captured?.arguments, {
+      'aliases': {'/home': 'Home', '/cart': 'Cart'},
+    });
+  });
 }

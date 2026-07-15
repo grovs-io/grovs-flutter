@@ -91,6 +91,11 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('trackScreenView() has not been implemented.');
   }
 
+  /// Sync a map of raw screen names to friendly names
+  Future<void> setScreenAliases(Map<String, String> aliases) {
+    throw UnimplementedError('setScreenAliases() has not been implemented.');
+  }
+
   /// Stream of deeplink events
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     throw UnimplementedError('onDeeplinkReceived has not been implemented.');

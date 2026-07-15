@@ -3,6 +3,15 @@ import 'models/grovs_link.dart';
 
 /// Main class for interacting with the Grovs SDK
 class Grovs {
+  /// Raw-name → friendly-name map, applied Dart-side by
+  /// [GrovsNavigatorObserver] to automatic screen views. Also forwarded to
+  /// native for backend dashboard sync. Set via [setScreenAliases].
+  static Map<String, String> _screenAliases = <String, String>{};
+
+  /// The current screen aliases. Read by [GrovsNavigatorObserver].
+  static Map<String, String> get screenAliases =>
+      Map<String, String>.unmodifiable(_screenAliases);
+
   /// Get the platform version
   Future<String?> getPlatformVersion() {
     return GrovsPlatform.instance.getPlatformVersion();
@@ -240,6 +249,27 @@ class Grovs {
       screenName,
       properties: properties,
     );
+  }
+
+  /// Set screen aliases (raw screen name → friendly name)
+  ///
+  /// Friendly names are applied Dart-side to automatic screen views emitted by
+  /// [GrovsNavigatorObserver], and the map is also synced to the Grovs
+  /// dashboard by the native SDK. Key aliases by the raw screen name the
+  /// observer emits (a route's `RouteSettings.name`, or the route-type
+  /// fallback).
+  ///
+  /// [aliases] - Map of raw screen name to friendly name.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
+  /// ```
+  Future<void> setScreenAliases(Map<String, String> aliases) {
+    _screenAliases = Map<String, String>.from(aliases);
+    return GrovsPlatform.instance.setScreenAliases(aliases);
   }
 
   /// Stream of deeplink events

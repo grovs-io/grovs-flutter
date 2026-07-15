@@ -344,6 +344,22 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
 
+            "setScreenAliases" -> {
+                val aliases = call.argument<Map<String, String>>("aliases")
+
+                if (aliases == null) {
+                    result.error("INVALID_ARGUMENT", "aliases is required", null)
+                    return
+                }
+
+                try {
+                    Grovs.setScreenAliases(aliases)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("EVENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }

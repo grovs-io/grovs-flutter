@@ -184,6 +184,20 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<void> setScreenAliases(Map<String, String> aliases) async {
+    try {
+      await methodChannel.invokeMethod('setScreenAliases', {
+        'aliases': aliases,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to set screen aliases',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived {
     _onDeeplinkReceived ??= eventChannel.receiveBroadcastStream().map((
       dynamic event,

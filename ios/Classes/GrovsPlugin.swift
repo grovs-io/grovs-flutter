@@ -289,6 +289,16 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.trackScreenView(screenName, properties: properties)
             result(nil)
 
+        case "setScreenAliases":
+            guard let args = call.arguments as? [String: Any],
+                  let aliases = args["aliases"] as? [String: String] else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "aliases is required", details: nil))
+                return
+            }
+
+            Grovs.setScreenAliases(aliases)
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }

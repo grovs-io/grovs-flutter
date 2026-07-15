@@ -60,6 +60,9 @@ class MockGrovsPlatform
       Future.value();
 
   @override
+  Future<void> setScreenAliases(Map<String, String> aliases) => Future.value();
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived => Stream.empty();
 }
 
@@ -88,5 +91,15 @@ void main() {
     );
 
     expect(link, 'https://grovs.io/test-link');
+  });
+
+  test('setScreenAliases populates the static alias store', () async {
+    Grovs grovsPlugin = Grovs();
+    MockGrovsPlatform fakePlatform = MockGrovsPlatform();
+    GrovsPlatform.instance = fakePlatform;
+
+    await grovsPlugin.setScreenAliases({'/home': 'Home'});
+
+    expect(Grovs.screenAliases, {'/home': 'Home'});
   });
 }
