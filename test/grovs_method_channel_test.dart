@@ -45,4 +45,20 @@ void main() {
       'tags': ['onboarding'],
     });
   });
+
+  test('setGlobalTags sends correct method and arguments', () async {
+    MethodCall? captured;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (MethodCall call) async {
+      captured = call;
+      return null;
+    });
+
+    await platform.setGlobalTags(['premium', 'beta']);
+
+    expect(captured?.method, 'setGlobalTags');
+    expect(captured?.arguments, {
+      'tags': ['premium', 'beta'],
+    });
+  });
 }

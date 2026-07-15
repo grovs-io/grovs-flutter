@@ -272,6 +272,12 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.track(name, properties: properties, tags: tags)
             result(nil)
 
+        case "setGlobalTags":
+            let args = call.arguments as? [String: Any]
+            let tags = args?["tags"] as? [String]
+            Grovs.setGlobalTags(tags)
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }

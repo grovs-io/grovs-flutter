@@ -317,6 +317,16 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
 
+            "setGlobalTags" -> {
+                val tags = call.argument<List<String>>("tags")
+                try {
+                    Grovs.setGlobalTags(tags)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("EVENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }

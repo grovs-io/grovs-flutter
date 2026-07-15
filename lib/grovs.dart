@@ -204,6 +204,20 @@ class Grovs {
     );
   }
 
+  /// Set global tags applied to every subsequent custom event
+  ///
+  /// [tags] - Tags to merge into all future events, or null to clear.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  ///
+  /// Example:
+  /// ```dart
+  /// await Grovs().setGlobalTags(['premium', 'beta']);
+  /// ```
+  Future<void> setGlobalTags(List<String>? tags) {
+    return GrovsPlatform.instance.setGlobalTags(tags);
+  }
+
   /// Stream of deeplink events
   ///
   /// Listen to this stream to receive deeplink events when a user opens your app via a Grovs link.

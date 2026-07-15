@@ -50,6 +50,9 @@ class MockGrovsPlatform
       Future.value();
 
   @override
+  Future<void> setGlobalTags(List<String>? tags) => Future.value();
+
+  @override
   Stream<DeeplinkDetails> get onDeeplinkReceived => Stream.empty();
 }
 
