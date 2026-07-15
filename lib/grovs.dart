@@ -1,3 +1,4 @@
+import 'grovs_navigator_observer.dart';
 import 'grovs_platform_interface.dart';
 import 'models/grovs_link.dart';
 
@@ -11,6 +12,15 @@ class Grovs {
   /// The current screen aliases. Read by [GrovsNavigatorObserver].
   static Map<String, String> get screenAliases =>
       Map<String, String>.unmodifiable(_screenAliases);
+
+  static final GrovsNavigatorObserver _navigatorObserver =
+      GrovsNavigatorObserver();
+
+  /// A shared [GrovsNavigatorObserver] for automatic screen tracking.
+  ///
+  /// Add to `MaterialApp(navigatorObservers: [Grovs.navigatorObserver])`. For
+  /// custom name resolution, construct your own `GrovsNavigatorObserver`.
+  static GrovsNavigatorObserver get navigatorObserver => _navigatorObserver;
 
   /// Get the platform version
   Future<String?> getPlatformVersion() {
