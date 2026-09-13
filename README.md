@@ -36,6 +36,7 @@ The Grovs Flutter SDK provides deep linking, app links, universal links, link ge
 - **In-app messaging** — display messages and announcements from the Grovs dashboard
 - **Push notifications** — receive push notifications for dashboard-sent messages
 - **Revenue tracking** — log App Store, Google Play, and custom purchases with automatic attribution
+- **Analytics**: track custom events and screen views, with automatic screen tracking via `Grovs.navigatorObserver`
 - **User identity** — attach user IDs and attributes for analytics and segmentation
 - **Self-hosting support** — point the SDK at your own backend
 - **Auto-configuration** — platform config via `AndroidManifest.xml` and `Info.plist`
@@ -414,6 +415,11 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | `generateLink(params)` | Generate a smart link |
 | `logInAppPurchase(transactionId)` | Log a store purchase |
 | `logCustomPurchase(type, priceInCents, currency, productId, startDate)` | Log a custom purchase |
+| `track(name, {properties, tags})` | Log a custom event |
+| `trackScreenView(screenName, {properties})` | Log a screen view manually |
+| `setGlobalTags(tags)` | Set tags applied to all future events |
+| `setScreenAliases(aliases)` | Map raw screen names to friendly dashboard names |
+| `Grovs.navigatorObserver` | `NavigatorObserver` for automatic screen tracking |
 
 Full API reference: [docs.grovs.io/docs/sdk/flutter/api-reference](https://docs.grovs.io/docs/sdk/flutter/api-reference)
 

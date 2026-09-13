@@ -260,6 +260,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
                 }
             }
 
+        // Native analytics calls are fire-and-forget (void, non-throwing); nothing to surface to Flutter.
         case "track":
             guard let args = call.arguments as? [String: Any],
                   let name = args["name"] as? String else {

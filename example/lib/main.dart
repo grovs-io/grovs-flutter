@@ -23,7 +23,7 @@ void main() async {
       'app': 'Flutter Demo',
     });
   } catch (e) {
-    print('Failed to configure Grovs: $e');
+    debugPrint('Failed to configure Grovs: $e');
   }
 
   runApp(const MyApp());
@@ -320,7 +320,7 @@ class _MyAppState extends State<MyApp> {
                               currency: 'USD',
                               productId: 'premium_monthly',
                             );
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Custom purchase logged!'),
@@ -328,7 +328,7 @@ class _MyAppState extends State<MyApp> {
                               );
                             }
                           } on GrovsException catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(

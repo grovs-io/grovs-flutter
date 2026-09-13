@@ -101,5 +101,9 @@ void main() {
     await grovsPlugin.setScreenAliases({'/home': 'Home'});
 
     expect(Grovs.screenAliases, {'/home': 'Home'});
+    expect(
+      () => Grovs.screenAliases['x'] = 'y',
+      throwsUnsupportedError,
+    );
   });
 }

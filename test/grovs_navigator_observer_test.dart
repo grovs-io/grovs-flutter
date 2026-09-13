@@ -60,7 +60,12 @@ void main() {
     GrovsPlatform.instance = platform;
   });
 
-  tearDown(() {
+  tearDown(() async {
+    // Reset the process-global alias store so it doesn't leak into later
+    // tests. This goes through the test's RecordingGrovsPlatform (a no-op)
+    // rather than the real MethodChannelGrovs, since it runs before the
+    // instance is restored below.
+    await Grovs().setScreenAliases({});
     GrovsPlatform.instance = MethodChannelGrovs();
   });
 
@@ -111,5 +116,24 @@ void main() {
     final observer = GrovsNavigatorObserver();
     observer.didPush(_pageRoute(name: '/home'), null);
     expect(platform.screenViews, ['Home']);
+  });
+
+  test(
+      'screenNameExtractor returning an empty string falls through to '
+      'route.settings.name', () {
+    final observer = GrovsNavigatorObserver(
+      screenNameExtractor: (route) => '',
+    );
+    observer.didPush(_pageRoute(name: '/home'), null);
+    expect(platform.screenViews, ['/home']);
+  });
+
+  test(
+      'empty route.settings.name falls through to the runtime-type '
+      'fallback', () {
+    final observer = GrovsNavigatorObserver();
+    observer.didPush(_pageRoute(name: ''), null);
+    expect(platform.screenViews.length, 1);
+    expect(platform.screenViews.first, contains('PageRouteBuilder'));
   });
 }
