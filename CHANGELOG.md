@@ -16,6 +16,7 @@ Behavior changes on upgrade:
 * On first launch after install the native SDK may read the clipboard to resolve a deferred deep link. iOS may show the system paste notice.
 * Native automatic screen tracking is disabled in the Flutter wrapper. Screen views come from `Grovs.navigatorObserver` when installed.
 * Android: the native SDK is configured once per process even when several Flutter engines attach.
+* iOS: a deep link lookup that was in flight when `setSDK(false)` was called is dropped by the plugin. If consent is granted again before that lookup completes, the native SDK may still deliver it.
 
 ## 1.1.0
 
