@@ -36,6 +36,7 @@ private final class BufferedStreamHandler: NSObject, FlutterStreamHandler {
     private var sink: FlutterEventSink?
     private var pending: [[String: Any]] = []
     private let maxPending = 20
+    var onListenHook: (() -> Void)?
 
     func send(_ event: [String: Any]) {
         if let sink = sink {
@@ -49,6 +50,7 @@ private final class BufferedStreamHandler: NSObject, FlutterStreamHandler {
     }
 
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        onListenHook?()
         sink = events
         pending.forEach { events($0) }
         pending.removeAll()
@@ -81,6 +83,11 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         let eventChannel = FlutterEventChannel(name: "grovs/deeplinks", binaryMessenger: registrar.messenger())
         
         let instance = GrovsPlugin()
+        // The subscribing engine owns the SDK's weak delegate.
+        instance.deeplinkStream.onListenHook = { [weak instance] in
+            guard let instance = instance else { return }
+            Grovs.delegate = instance
+        }
         instance.methodChannel = channel
         
         registrar.addMethodCallDelegate(instance, channel: channel)
