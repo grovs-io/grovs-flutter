@@ -42,6 +42,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private lateinit var context: Context
     private var activityBinding: ActivityPluginBinding? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val pendingDeeplinks = mutableListOf<Map<String, Any?>>()
+    private val maxPendingDeeplinks = 20
 
     companion object {
         // Native configure and lifecycle registration must run once per process,
@@ -85,7 +87,9 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                 eventSink = events
-                setupDeeplinkListener()
+                if (events == null) return
+                pendingDeeplinks.forEach { events.success(it) }
+                pendingDeeplinks.clear()
             }
 
             override fun onCancel(arguments: Any?) {
@@ -145,13 +149,29 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun setupDeeplinkListener() {
-        activityBinding?.activity?.let { activity ->
-            Grovs.setOnDeeplinkReceivedListener(activity) { linkDetails ->
-                coroutineScope.launch {
-                    eventSink?.success(mapOf("link" to linkDetails.link, "data" to linkDetails.data, "tracking" to linkDetails.tracking))
-                }
+    private fun registerNativeDeeplinkListener(activity: Activity) {
+        Grovs.setOnDeeplinkReceivedListener(activity) { linkDetails ->
+            coroutineScope.launch {
+                deliverDeeplink(
+                    mapOf(
+                        "link" to linkDetails.link,
+                        "data" to linkDetails.data,
+                        "tracking" to linkDetails.tracking
+                    )
+                )
             }
+        }
+    }
+
+    private fun deliverDeeplink(event: Map<String, Any?>) {
+        val sink = eventSink
+        if (sink != null) {
+            sink.success(event)
+            return
+        }
+        pendingDeeplinks.add(event)
+        if (pendingDeeplinks.size > maxPendingDeeplinks) {
+            pendingDeeplinks.removeAt(0)
         }
     }
 
@@ -456,10 +476,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activityBinding = binding
-        // Set up deeplink listener when activity is available
-        if (eventSink != null) {
-            setupDeeplinkListener()
-        }
+        registerNativeDeeplinkListener(binding.activity)
 
         // Add listener for new intents
         binding.addOnNewIntentListener { intent ->
@@ -475,10 +492,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         activityBinding = binding
-        // Re-setup deeplink listener when activity is reattached
-        if (eventSink != null) {
-            setupDeeplinkListener()
-        }
+        registerNativeDeeplinkListener(binding.activity)
         // Add listener for new intents
         binding.addOnNewIntentListener { intent ->
             if (!sdkEnabled) pendingIntent = intent

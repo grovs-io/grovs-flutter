@@ -31,8 +31,8 @@ extension Array where Element == Any {
     }
 }
 
-/// Forwards native SDK errors to Dart, buffering the ones raised before Dart subscribes.
-private final class ErrorStreamHandler: NSObject, FlutterStreamHandler {
+/// Forwards native events to Dart, buffering the ones raised before Dart subscribes.
+private final class BufferedStreamHandler: NSObject, FlutterStreamHandler {
     private var sink: FlutterEventSink?
     private var pending: [[String: Any]] = []
     private let maxPending = 20
@@ -67,9 +67,9 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         case url(URL)
     }
 
-    private var eventSink: FlutterEventSink?
     private var methodChannel: FlutterMethodChannel?
-    private let errorStream = ErrorStreamHandler()
+    private let errorStream = BufferedStreamHandler()
+    private let deeplinkStream = BufferedStreamHandler()
 
     // Consent state and the launch link received while disabled are shared by
     // every engine because the SDK is configured once per process.
@@ -85,7 +85,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
-        eventChannel.setStreamHandler(instance)
+        eventChannel.setStreamHandler(instance.deeplinkStream)
         let errorChannel = FlutterEventChannel(name: "grovs/errors", binaryMessenger: registrar.messenger())
         errorChannel.setStreamHandler(instance.errorStream)
     }
@@ -406,7 +406,6 @@ extension GrovsPlugin: GrovsDelegate {
     public func grovsReceivedPayloadFromDeeplink(link: String?, payload: [String : Any]?, tracking: [String : Any]?) {
         // Drop lookups that complete after consent is withdrawn.
         guard GrovsPlugin.sdkEnabled else { return }
-        guard let eventSink = eventSink else { return }
         
         var eventData: [String: Any] = [:]
         if let link = link {
@@ -419,19 +418,6 @@ extension GrovsPlugin: GrovsDelegate {
             eventData["tracking"] = tracking
         }
         
-        eventSink(eventData)
-    }
-}
-
-// MARK: - FlutterStreamHandler
-extension GrovsPlugin: FlutterStreamHandler {
-    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-        self.eventSink = events
-        return nil
-    }
-    
-    public func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        self.eventSink = nil
-        return nil
+        deeplinkStream.send(eventData)
     }
 }
