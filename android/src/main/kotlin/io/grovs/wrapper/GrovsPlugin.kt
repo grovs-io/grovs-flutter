@@ -16,6 +16,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry
 import io.grovs.Grovs
 import io.grovs.model.CustomLinkRedirect
 import io.grovs.model.DebugLogger
@@ -24,8 +25,11 @@ import io.grovs.model.exceptions.GrovsException
 import io.grovs.service.CustomRedirects
 import io.grovs.service.TrackingParams
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import io.grovs.model.events.PaymentEventType
@@ -41,7 +45,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var errorSink: EventChannel.EventSink? = null
     private lateinit var context: Context
     private var activityBinding: ActivityPluginBinding? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var newIntentListener: PluginRegistry.NewIntentListener? = null
     private val pendingDeeplinks = mutableListOf<Map<String, Any?>>()
     private val maxPendingDeeplinks = 20
 
@@ -175,6 +180,25 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
+    private fun attachActivity(binding: ActivityPluginBinding) {
+        activityBinding = binding
+        registerNativeDeeplinkListener(binding.activity)
+
+        val listener = PluginRegistry.NewIntentListener { intent ->
+            if (!sdkEnabled) pendingIntent = intent
+            Grovs.onNewIntent(intent, binding.activity)
+            false
+        }
+        newIntentListener = listener
+        binding.addOnNewIntentListener(listener)
+    }
+
+    private fun detachActivity() {
+        newIntentListener?.let { activityBinding?.removeOnNewIntentListener(it) }
+        newIntentListener = null
+        activityBinding = null
+    }
+
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "getPlatformVersion" -> {
@@ -260,6 +284,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                             )
                         }
                         result.success(link)
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: GrovsException) {
                         result.error("GENERATION_ERROR", e.message, null)
                     } catch (e: Exception) {
@@ -471,37 +497,27 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         channel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
         errorChannel.setStreamHandler(null)
+        // Removing stream handlers does not call onCancel.
+        eventSink = null
         errorSink = null
+        pendingDeeplinks.clear()
+        detachActivity()
+        coroutineScope.cancel()
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        activityBinding = binding
-        registerNativeDeeplinkListener(binding.activity)
-
-        // Add listener for new intents
-        binding.addOnNewIntentListener { intent ->
-            if (!sdkEnabled) pendingIntent = intent
-            Grovs.onNewIntent(intent, binding.activity)
-            false
-        }
+        attachActivity(binding)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        activityBinding = null
+        detachActivity()
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        activityBinding = binding
-        registerNativeDeeplinkListener(binding.activity)
-        // Add listener for new intents
-        binding.addOnNewIntentListener { intent ->
-            if (!sdkEnabled) pendingIntent = intent
-            Grovs.onNewIntent(intent, binding.activity)
-            false
-        }
+        attachActivity(binding)
     }
 
     override fun onDetachedFromActivity() {
-        activityBinding = null
+        detachActivity()
     }
 }
