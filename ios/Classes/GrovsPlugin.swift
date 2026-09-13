@@ -404,6 +404,8 @@ extension GrovsPlugin: GrovsDelegate {
     }
 
     public func grovsReceivedPayloadFromDeeplink(link: String?, payload: [String : Any]?, tracking: [String : Any]?) {
+        // Drop lookups that complete after consent is withdrawn.
+        guard GrovsPlugin.sdkEnabled else { return }
         guard let eventSink = eventSink else { return }
         
         var eventData: [String: Any] = [:]
