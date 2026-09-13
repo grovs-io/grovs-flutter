@@ -1,3 +1,22 @@
+## 3.0.0
+
+Aligned with native Grovs SDKs 3.0.0 (Android `io.grovs:Grovs:3.0.0`, iOS `Grovs ~> 3.0`).
+
+Added:
+
+* Consent gate: `GrovsEnabled` (Info.plist) and `grovs_enabled` (AndroidManifest.xml) set the initial state, `setSDK(bool)` changes it at runtime. A deep link that opened the app while disabled is delivered after enabling.
+* `GrovsClipboardDomains` / `grovs_clipboard_domains` config for clipboard deferred deep linking.
+* `copyToClipboardIos` and `copyToClipboardAndroid` on `GenerateLinkParams`.
+* `onError` stream with `GrovsError` and `GrovsErrorCode` (iOS only for now).
+* Analytics: `track`, `trackScreenView`, `setGlobalTags`, `setScreenAliases`, and `Grovs.navigatorObserver` for automatic screen views.
+
+Behavior changes on upgrade:
+
+* The SDK is enabled by default and authenticates on launch as before. Apps with a consent flow must set the config key to false and call `setSDK(true)` after consent.
+* On first launch after install the native SDK may read the clipboard to resolve a deferred deep link. iOS may show the system paste notice.
+* Native automatic screen tracking is disabled in the Flutter wrapper. Screen views come from `Grovs.navigatorObserver` when installed.
+* Android: the native SDK is configured once per process even when several Flutter engines attach.
+
 ## 1.1.0
 
 * Added custom base URL support via Info.plist (iOS) and AndroidManifest.xml (Android)

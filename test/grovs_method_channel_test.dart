@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grovs_flutter_plugin/grovs_method_channel.dart';
+import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -9,6 +10,7 @@ void main() {
   const MethodChannel channel = MethodChannel('grovs');
 
   setUp(() {
+    platform = MethodChannelGrovs();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
           return '42';
@@ -24,13 +26,150 @@ void main() {
     expect(await platform.getPlatformVersion(), '42');
   });
 
+  for (final enabled in [true, false]) {
+    test('setSDK sends enabled=$enabled', () async {
+      MethodCall? captured;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            captured = call;
+            return null;
+          });
+
+      await platform.setSDK(enabled);
+
+      expect(captured?.method, 'setSDK');
+      expect(captured?.arguments, {'enabled': enabled});
+    });
+  }
+
+  for (final message in <String?>['Native failure', null]) {
+    test('setSDK wraps platform errors with message $message', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            throw PlatformException(code: 'SDK_ERROR', message: message);
+          });
+
+      await expectLater(
+        platform.setSDK(false),
+        throwsA(
+          isA<GrovsException>()
+              .having((error) => error.code, 'code', 'SDK_ERROR')
+              .having(
+                (error) => error.message,
+                'message',
+                message ?? 'Failed to set SDK enabled state',
+              ),
+        ),
+      );
+    });
+  }
+
+  for (final copyToClipboard in <bool?>[true, false, null]) {
+    test('generateLink sends clipboard value $copyToClipboard', () async {
+      MethodCall? captured;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            captured = call;
+            return 'https://example.grovs.io/product';
+          });
+      final params = GenerateLinkParams(
+        title: 'Product',
+        data: {'id': '123'},
+        showPreviewIos: false,
+        showPreviewAndroid: true,
+        copyToClipboardIos: copyToClipboard,
+        copyToClipboardAndroid: copyToClipboard,
+      );
+
+      expect(
+        await platform.generateLink(params),
+        'https://example.grovs.io/product',
+      );
+      expect(captured?.method, 'generateLink');
+      expect(captured?.arguments, params.toMap());
+      expect(
+        captured?.arguments,
+        containsPair('copyToClipboardIos', copyToClipboard),
+      );
+      expect(
+        captured?.arguments,
+        containsPair('copyToClipboardAndroid', copyToClipboard),
+      );
+      expect(captured?.arguments, containsPair('data', {'id': '123'}));
+      expect(captured?.arguments, containsPair('showPreviewIos', false));
+      expect(captured?.arguments, containsPair('showPreviewAndroid', true));
+    });
+  }
+
+  test('onError maps known codes and shares one native subscription', () async {
+    const errorMethods = MethodChannel('grovs/errors');
+    const codec = StandardMethodCodec();
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final calls = <String>[];
+    messenger.setMockMethodCallHandler(errorMethods, (call) async {
+      calls.add(call.method);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(errorMethods, null));
+
+    expect(platform.errorChannel.name, 'grovs/errors');
+    final stream = platform.onError;
+    expect(identical(stream, platform.onError), isTrue);
+    expect(stream.isBroadcast, isTrue);
+    final first = <GrovsError>[];
+    final second = <GrovsError>[];
+    final firstSubscription = stream.listen(first.add);
+    final secondSubscription = platform.onError.listen(second.add);
+    addTearDown(firstSubscription.cancel);
+    addTearDown(secondSubscription.cancel);
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, ['listen']);
+
+    for (final code in GrovsErrorCode.values) {
+      await messenger.handlePlatformMessage(
+        'grovs/errors',
+        codec.encodeSuccessEnvelope({
+          'code': code.nativeName,
+          'message': code.name,
+        }),
+        (_) {},
+      );
+    }
+    await messenger.handlePlatformMessage(
+      'grovs/errors',
+      codec.encodeSuccessEnvelope({
+        'code': 'future_error',
+        'message': 'Ignore',
+      }),
+      (_) {},
+    );
+    await messenger.handlePlatformMessage(
+      'grovs/errors',
+      codec.encodeSuccessEnvelope({'message': 'Missing code'}),
+      (_) {},
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(first.map((error) => error.code), GrovsErrorCode.values);
+    expect(second.map((error) => error.code), GrovsErrorCode.values);
+    expect(
+      first.map((error) => error.message),
+      GrovsErrorCode.values.map((code) => code.name),
+    );
+    await firstSubscription.cancel();
+    expect(calls, ['listen']);
+    await secondSubscription.cancel();
+    expect(calls, ['listen', 'cancel']);
+  });
+
   test('track sends correct method and arguments', () async {
     MethodCall? captured;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall call) async {
-      captured = call;
-      return null;
-    });
+          captured = call;
+          return null;
+        });
 
     await platform.track(
       'signup_completed',
@@ -50,9 +189,9 @@ void main() {
     MethodCall? captured;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall call) async {
-      captured = call;
-      return null;
-    });
+          captured = call;
+          return null;
+        });
 
     await platform.setGlobalTags(['premium', 'beta']);
 
@@ -66,9 +205,9 @@ void main() {
     MethodCall? captured;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall call) async {
-      captured = call;
-      return null;
-    });
+          captured = call;
+          return null;
+        });
 
     await platform.trackScreenView('Checkout', properties: {'step': 2});
 
@@ -83,9 +222,9 @@ void main() {
     MethodCall? captured;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall call) async {
-      captured = call;
-      return null;
-    });
+          captured = call;
+          return null;
+        });
 
     await platform.setScreenAliases({'/home': 'Home', '/cart': 'Cart'});
 

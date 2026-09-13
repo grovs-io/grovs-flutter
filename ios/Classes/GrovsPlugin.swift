@@ -31,9 +31,50 @@ extension Array where Element == Any {
     }
 }
 
+/// Forwards native SDK errors to Dart, buffering the ones raised before Dart subscribes.
+private final class ErrorStreamHandler: NSObject, FlutterStreamHandler {
+    private var sink: FlutterEventSink?
+    private var pending: [[String: Any]] = []
+    private let maxPending = 20
+
+    func send(_ event: [String: Any]) {
+        if let sink = sink {
+            sink(event)
+            return
+        }
+        pending.append(event)
+        if pending.count > maxPending {
+            pending.removeFirst()
+        }
+    }
+
+    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        sink = events
+        pending.forEach { events($0) }
+        pending.removeAll()
+        return nil
+    }
+
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        sink = nil
+        return nil
+    }
+}
+
 public class GrovsPlugin: NSObject, FlutterPlugin {
+    private enum PendingLaunchLink {
+        case userActivity(NSUserActivity)
+        case url(URL)
+    }
+
     private var eventSink: FlutterEventSink?
     private var methodChannel: FlutterMethodChannel?
+    private let errorStream = ErrorStreamHandler()
+
+    // Consent state and the launch link received while disabled are shared by
+    // every engine because the SDK is configured once per process.
+    private static var sdkEnabled = true
+    private static var pendingLaunchLink: PendingLaunchLink?
     
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "grovs", binaryMessenger: registrar.messenger())
@@ -45,6 +86,8 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
         eventChannel.setStreamHandler(instance)
+        let errorChannel = FlutterEventChannel(name: "grovs/errors", binaryMessenger: registrar.messenger())
+        errorChannel.setStreamHandler(instance.errorStream)
     }
 
     // Hook into didFinishLaunchingWithOptions
@@ -53,7 +96,18 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         if let infoDictionary = Bundle.main.infoDictionary, let apiKey = infoDictionary["GrovsApiKey"] as? String {
             let useTestEnvironment = infoDictionary["GrovsUseTestEnvironment"] as? Bool ?? false
             let baseURL = infoDictionary["GrovsBaseURL"] as? String
-            Grovs.configure(APIKey: apiKey, useTestEnvironment: useTestEnvironment, baseURL: baseURL, autoTrackScreenViews: false, delegate: self)
+            let clipboardDomains = infoDictionary["GrovsClipboardDomains"] as? [String]
+            let enabled = infoDictionary["GrovsEnabled"] as? Bool ?? true
+            GrovsPlugin.sdkEnabled = enabled
+            Grovs.configure(
+                APIKey: apiKey,
+                useTestEnvironment: useTestEnvironment,
+                baseURL: baseURL,
+                autoTrackScreenViews: false,
+                clipboardDomains: clipboardDomains,
+                enabled: enabled,
+                delegate: self
+            )
         }
         
         return true
@@ -61,14 +115,37 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
     
     // Handle universal link continuation
     public func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]) -> Void) -> Bool {
+        if !GrovsPlugin.sdkEnabled {
+            GrovsPlugin.pendingLaunchLink = .userActivity(userActivity)
+        }
         return Grovs.handleAppDelegate(continue: userActivity, restorationHandler: Array.convertClosure(restorationHandler, toOptionalArrayOf: UIUserActivityRestoring.self))
     }
 
     // Handle URI opening
     public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        if !GrovsPlugin.sdkEnabled {
+            GrovsPlugin.pendingLaunchLink = .url(url)
+        }
         return Grovs.handleAppDelegate(open: url, options: options)
     }
-    
+
+    private func setSDKEnabled(_ enabled: Bool) {
+        guard enabled != GrovsPlugin.sdkEnabled else { return }
+        Grovs.setSDK(enabled: enabled)
+        GrovsPlugin.sdkEnabled = enabled
+
+        guard enabled, let pending = GrovsPlugin.pendingLaunchLink else { return }
+        GrovsPlugin.pendingLaunchLink = nil
+        // The native SDK drops links received while disabled; hand it the launch
+        // link again now that it may process it. Must run on the main thread.
+        switch pending {
+        case .userActivity(let activity):
+            _ = Grovs.handleAppDelegate(continue: activity, restorationHandler: { _ in })
+        case .url(let url):
+            _ = Grovs.handleAppDelegate(open: url, options: [:])
+        }
+    }
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "getPlatformVersion":
@@ -91,6 +168,8 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             let customRedirectsMap = args["customRedirects"] as? [String: [String: Any]]
             let showPreviewIos = args["showPreviewIos"] as? Bool
             let showPreviewAndroid = args["showPreviewAndroid"] as? Bool
+            let copyToClipboardIos = args["copyToClipboardIos"] as? Bool
+            let copyToClipboardAndroid = args["copyToClipboardAndroid"] as? Bool
             let trackingMap = args["tracking"] as? [String: String]
             
             // Parse custom redirects
@@ -136,6 +215,8 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
                 customRedirects: customRedirects,
                 showPreviewiOS: showPreviewIos,
                 showPreviewAndroid: showPreviewAndroid,
+                copyToClipboardiOS: copyToClipboardIos,
+                copyToClipboardAndroid: copyToClipboardAndroid,
                 trackingCampaign: trackingCampaign,
                 trackingSource: trackingSource,
                 trackingMedium: trackingMedium
@@ -300,6 +381,16 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.setScreenAliases(aliases)
             result(nil)
 
+        case "setSDK":
+            guard let args = call.arguments as? [String: Any],
+                  let enabled = args["enabled"] as? Bool else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "enabled is required", details: nil))
+                return
+            }
+
+            setSDKEnabled(enabled)
+            result(nil)
+
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -308,6 +399,10 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
 // MARK: - GrovsDelegate
 extension GrovsPlugin: GrovsDelegate {
+    public func grovsDidEncounterError(_ error: GrovsError, message: String) {
+        errorStream.send(["code": error.description, "message": message])
+    }
+
     public func grovsReceivedPayloadFromDeeplink(link: String?, payload: [String : Any]?, tracking: [String : Any]?) {
         guard let eventSink = eventSink else { return }
         

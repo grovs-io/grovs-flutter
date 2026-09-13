@@ -14,7 +14,12 @@ class MethodChannelGrovs extends GrovsPlatform {
   @visibleForTesting
   final eventChannel = const EventChannel('grovs/deeplinks');
 
+  /// The event channel for receiving asynchronous SDK errors.
+  @visibleForTesting
+  final errorChannel = const EventChannel('grovs/errors');
+
   Stream<DeeplinkDetails>? _onDeeplinkReceived;
+  Stream<GrovsError>? _onError;
 
   @override
   Future<String?> getPlatformVersion() async {
@@ -38,6 +43,18 @@ class MethodChannelGrovs extends GrovsPlatform {
     } on PlatformException catch (e) {
       throw GrovsException(
         e.message ?? 'Failed to generate link',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> setSDK(bool enabled) async {
+    try {
+      await methodChannel.invokeMethod('setSDK', {'enabled': enabled});
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to set SDK enabled state',
         code: e.code,
       );
     }
@@ -195,6 +212,18 @@ class MethodChannelGrovs extends GrovsPlatform {
         code: e.code,
       );
     }
+  }
+
+  @override
+  Stream<GrovsError> get onError {
+    _onError ??= errorChannel
+        .receiveBroadcastStream()
+        .map(
+          (dynamic event) => GrovsError.fromMap(event as Map<dynamic, dynamic>),
+        )
+        .where((error) => error != null)
+        .cast<GrovsError>();
+    return _onError!;
   }
 
   @override

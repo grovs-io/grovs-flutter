@@ -1,21 +1,17 @@
-#
-# To learn more about a Podspec see http://guides.cocoapods.org/syntax/podspec.html.
-# Run `pod lib lint grovs_flutter_plugin.podspec` to validate before publishing.
-#
 Pod::Spec.new do |s|
   s.name             = 'grovs_flutter_plugin'
-  s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '3.0.0'
+  s.summary          = 'Flutter plugin for the Grovs SDK.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+Deep linking, smart links, analytics, user messaging, and campaign tracking for Flutter apps.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://grovs.io'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Grovs' => 'support@grovs.io' }
   s.source           = { :path => '.' }
   s.source_files = 'Classes/**/*'
   s.dependency 'Flutter'
-  s.dependency 'Grovs', '~> 2.3'
+  s.dependency 'Grovs', '~> 3.0'
   s.platform = :ios, '13.0'
 
   # Flutter.framework does not contain a i386 slice.

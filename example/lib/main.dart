@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:grovs_flutter_plugin/grovs.dart';
-import 'package:grovs_flutter_plugin/grovs_navigator_observer.dart';
 import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -43,18 +42,43 @@ class _MyAppState extends State<MyApp> {
   final _grovs = Grovs();
   StreamSubscription<DeeplinkDetails>? _deeplinkSubscription;
   bool _isGenerating = false;
+  bool _sdkEnabled = true;
+  bool _isChangingConsent = false;
+  String _lastError = 'None';
+  StreamSubscription<GrovsError>? _errorSubscription;
 
   @override
   void initState() {
     super.initState();
     initPlatformState();
     setupDeeplinkListener();
+    _errorSubscription = _grovs.onError.listen((error) {
+      if (!mounted) return;
+      setState(() {
+        _lastError = '${error.code.nativeName}: ${error.message}';
+      });
+    });
   }
 
   @override
   void dispose() {
     _deeplinkSubscription?.cancel();
+    _errorSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _setSDKEnabled(bool enabled) async {
+    setState(() => _isChangingConsent = true);
+    try {
+      await _grovs.setSDK(enabled);
+      if (!mounted) return;
+      setState(() => _sdkEnabled = enabled);
+    } on GrovsException catch (error) {
+      if (!mounted) return;
+      setState(() => _lastError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isChangingConsent = false);
+    }
   }
 
   void setupDeeplinkListener() {
@@ -175,7 +199,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      navigatorObservers: <GrovsNavigatorObserver>[Grovs.navigatorObserver],
+      navigatorObservers: [Grovs.navigatorObserver],
       home: Scaffold(
         appBar: AppBar(title: const Text('Grovs Flutter Example'), actions: []),
         body: SingleChildScrollView(
@@ -341,6 +365,36 @@ class _MyAppState extends State<MyApp> {
                         },
                         child: const Text('Log Custom Purchase (\$9.99)'),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Consent',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('SDK enabled'),
+                        value: _sdkEnabled,
+                        onChanged: _isChangingConsent ? null : _setSDKEnabled,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Last SDK error',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(_lastError, style: const TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),

@@ -36,16 +36,36 @@ import java.lang.ref.WeakReference
 class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private lateinit var channel: MethodChannel
     private lateinit var eventChannel: EventChannel
+    private lateinit var errorChannel: EventChannel
     private var eventSink: EventChannel.EventSink? = null
+    private var errorSink: EventChannel.EventSink? = null
     private lateinit var context: Context
     private var activityBinding: ActivityPluginBinding? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+
+    companion object {
+        // Native configure and lifecycle registration must run once per process,
+        // even when several Flutter engines attach.
+        private var configured = false
+
+        // Last consent value handed to the native SDK, shared by all engines.
+        private var sdkEnabled = true
+        private var pendingIntent: Intent? = null
+
+        private fun handleActivityStart(activity: Activity) {
+            if (sdkEnabled) {
+                pendingIntent?.let { activity.intent = it }
+                pendingIntent = null
+            }
+            Grovs.onStart(activity)
+        }
+    }
 
     private val applicationLifecycleObserver: Application.ActivityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(p0: Activity, p1: Bundle?) { }
         override fun onActivityStarted(activity: Activity) {
             if (activity is FlutterActivity) {
-                Grovs.onStart(activity)
+                handleActivityStart(activity)
             }
         }
         override fun onActivityResumed(activity: Activity) { }
@@ -73,15 +93,56 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
         })
 
-        val application = context as? Application ?: (context.applicationContext as Application)
-        application.registerActivityLifecycleCallbacks(applicationLifecycleObserver)
+        errorChannel = EventChannel(flutterPluginBinding.binaryMessenger, "grovs/errors")
+        errorChannel.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                errorSink = events
+            }
 
-        val app = flutterPluginBinding.applicationContext as Application
-        val meta = app.packageManager.getApplicationInfo(app.packageName, PackageManager.GET_META_DATA).metaData
-        val apiKey = meta.getString("grovs_api_key")
+            override fun onCancel(arguments: Any?) {
+                errorSink = null
+            }
+        })
+
+        configureOnce(flutterPluginBinding.applicationContext as Application)
+    }
+
+    private fun configureOnce(application: Application) {
+        if (configured) return
+        val meta = application.packageManager
+            .getApplicationInfo(application.packageName, PackageManager.GET_META_DATA)
+            .metaData ?: Bundle()
+        val apiKey = meta.getString("grovs_api_key") ?: ""
         val useTestEnvironment = meta.getBoolean("grovs_use_test_environment", false)
         val baseURL = meta.getString("grovs_base_url")
-        Grovs.configure(application, apiKey ?: "", useTestEnvironment, baseURL, false)
+        val clipboardDomains = meta.getString("grovs_clipboard_domains")
+            ?.split(',')
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+        sdkEnabled = meta.getBoolean("grovs_enabled", true)
+
+        Grovs.configure(
+            application,
+            apiKey,
+            useTestEnvironment,
+            baseURL,
+            false,
+            clipboardDomains,
+            sdkEnabled
+        )
+        application.registerActivityLifecycleCallbacks(applicationLifecycleObserver)
+        configured = true
+    }
+
+    private fun setSDKEnabled(enabled: Boolean) {
+        if (enabled == sdkEnabled) return
+        Grovs.setSDK(enabled)
+        sdkEnabled = enabled
+        if (enabled) {
+            // Re-run intent handling so a launch link and first-open attribution
+            // that were skipped while disabled are processed now.
+            activityBinding?.activity?.let { handleActivityStart(it) }
+        }
     }
 
     private fun setupDeeplinkListener() {
@@ -109,6 +170,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val customRedirectsMap = call.argument<Map<String, Any>>("customRedirects")
                 val showPreviewIos = call.argument<Boolean>("showPreviewIos")
                 val showPreviewAndroid = call.argument<Boolean>("showPreviewAndroid")
+                val copyToClipboardIos = call.argument<Boolean>("copyToClipboardIos")
+                val copyToClipboardAndroid = call.argument<Boolean>("copyToClipboardAndroid")
                 val trackingMap = call.argument<Map<String, Any>>("tracking")
                 
                 if (title == null) {
@@ -171,6 +234,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                                 customRedirects = customRedirects,
                                 showPreviewIos = showPreviewIos,
                                 showPreviewAndroid = showPreviewAndroid,
+                                copyToClipboardIos = copyToClipboardIos,
+                                copyToClipboardAndroid = copyToClipboardAndroid,
                                 tracking = tracking
                             )
                         }
@@ -360,6 +425,22 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
             }
 
+            "setSDK" -> {
+                val enabled = call.argument<Boolean>("enabled")
+
+                if (enabled == null) {
+                    result.error("INVALID_ARGUMENT", "enabled is required", null)
+                    return
+                }
+
+                try {
+                    setSDKEnabled(enabled)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("CONSENT_ERROR", e.message, null)
+                }
+            }
+
             else -> {
                 result.notImplemented()
             }
@@ -369,6 +450,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
+        errorChannel.setStreamHandler(null)
+        errorSink = null
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -380,6 +463,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         // Add listener for new intents
         binding.addOnNewIntentListener { intent ->
+            if (!sdkEnabled) pendingIntent = intent
             Grovs.onNewIntent(intent, binding.activity)
             false
         }
@@ -397,6 +481,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
         // Add listener for new intents
         binding.addOnNewIntentListener { intent ->
+            if (!sdkEnabled) pendingIntent = intent
             Grovs.onNewIntent(intent, binding.activity)
             false
         }

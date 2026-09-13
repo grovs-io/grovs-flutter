@@ -33,6 +33,11 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('generateLink() has not been implemented.');
   }
 
+  /// Enable or disable the native SDK.
+  Future<void> setSDK(bool enabled) {
+    throw UnimplementedError('setSDK() has not been implemented.');
+  }
+
   /// Set the push token for receiving push notifications
   Future<void> setPushToken(String token) {
     throw UnimplementedError('setPushToken() has not been implemented.');
@@ -94,6 +99,11 @@ abstract class GrovsPlatform extends PlatformInterface {
   /// Sync a map of raw screen names to friendly names
   Future<void> setScreenAliases(Map<String, String> aliases) {
     throw UnimplementedError('setScreenAliases() has not been implemented.');
+  }
+
+  /// Stream of asynchronous SDK errors, available on iOS only.
+  Stream<GrovsError> get onError {
+    throw UnimplementedError('onError has not been implemented.');
   }
 
   /// Stream of deeplink events

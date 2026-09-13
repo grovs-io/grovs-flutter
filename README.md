@@ -40,13 +40,15 @@ The Grovs Flutter SDK provides deep linking, app links, universal links, link ge
 - **User identity** — attach user IDs and attributes for analytics and segmentation
 - **Self-hosting support** — point the SDK at your own backend
 - **Auto-configuration** — platform config via `AndroidManifest.xml` and `Info.plist`
+- **Consent control**: start disabled and enable the SDK once the user agrees
+- **Deferred deep linking**: resolve links tapped before installing via fingerprinting and clipboard
 
 ## Requirements
 
 - Flutter 3.3.0+
 - Dart 3.9.2+
 - iOS 13.0+
-- Android API 21+ (Android 5.0)
+- Android API 24+ (Android 7.0)
 
 ## Installation
 
@@ -54,7 +56,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^1.1.0
+  grovs_flutter_plugin: ^3.0.0
 ```
 
 Then run:
@@ -84,6 +86,16 @@ Add the Grovs API key and environment setting inside the `<application>` tag in 
     <meta-data
         android:name="grovs_base_url"
         android:value="https://your-domain.com" />
+
+    <!-- Optional: start the SDK disabled until the user gives consent (default true) -->
+    <meta-data
+        android:name="grovs_enabled"
+        android:value="false" />
+
+    <!-- Optional: extra hosts accepted for clipboard deferred deep linking, comma separated -->
+    <meta-data
+        android:name="grovs_clipboard_domains"
+        android:value="links.example.com,promo.example.com" />
 </application>
 ```
 
@@ -134,6 +146,17 @@ Add to `ios/Runner/Info.plist`:
 <!-- Optional: Custom base URL for self-hosted backends -->
 <key>GrovsBaseURL</key>
 <string>https://your-domain.com</string>
+
+<!-- Optional: start the SDK disabled until the user gives consent (default true) -->
+<key>GrovsEnabled</key>
+<false/>
+
+<!-- Optional: extra hosts accepted for clipboard deferred deep linking -->
+<key>GrovsClipboardDomains</key>
+<array>
+    <string>links.example.com</string>
+    <string>promo.example.com</string>
+</array>
 ```
 
 **2. Configure URL schemes**
@@ -212,6 +235,48 @@ void dispose() {
   super.dispose();
 }
 ```
+
+### Listen for SDK errors
+
+```dart
+import 'dart:async';
+import 'package:grovs_flutter_plugin/models/grovs_link.dart';
+
+StreamSubscription<GrovsError>? _errorSubscription;
+
+_errorSubscription = grovs.onError.listen((error) {
+  print('Grovs ${error.code.nativeName}: ${error.message}');
+});
+```
+
+Emitted for authentication, network, event delivery, and link generation failures. iOS only for now; Android emits nothing. The latest 20 errors raised before subscribing are buffered. Cancel the subscription when disposing your widget.
+
+## Consent
+
+The SDK is enabled by default and authenticates on launch. For apps that need user consent first:
+
+1. Set `GrovsEnabled` to `false` (iOS) and `grovs_enabled` to `false` (Android). The SDK is configured but makes no network calls, tracks nothing, and does not read the clipboard.
+2. Once the user agrees, call `setSDK(true)`.
+
+```dart
+await grovs.setSDK(true);   // user gave consent
+await grovs.setSDK(false);  // user withdrew consent
+```
+
+The SDK does not persist consent. Store the user's choice in your app and apply it on every launch. Start with the config key set to false and enable the SDK after restoring consent. Calling `setSDK(false)` from Dart cannot prevent native startup work when the config key is true.
+
+While disabled, user identifier and attribute changes are kept and synced once enabled. A deep link that opened the app while disabled is processed and delivered on `onDeeplinkReceived` after `setSDK(true)`.
+
+## Deferred deep linking via clipboard
+
+When a user taps a link with `copyToClipboard` enabled and does not have the app installed, the preview page copies the link to the clipboard. On the first launch after install the native SDK checks the clipboard once to resolve that link:
+
+- It runs only once per install, and only after the backend confirms the project had recent clipboard-enabled clicks.
+- The clipboard is read only when its content looks like a URL. iOS may show the system paste notice.
+- Accepted hosts are the Grovs link domains plus any `GrovsClipboardDomains` / `grovs_clipboard_domains` entries. Anything else is ignored and never leaves the device.
+- There is no separate opt-out. Starting the SDK disabled (see Consent) prevents the read.
+
+Set the flags per link with `copyToClipboardIos` and `copyToClipboardAndroid` on `GenerateLinkParams`, or leave them null to use the project default.
 
 ## Link Generation
 
@@ -402,6 +467,7 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 
 | Property | Type | Description |
 |---|---|---|
+| `onError` | `Stream<GrovsError>` | Native SDK errors (iOS only for now) |
 | `onDeeplinkReceived` | `Stream<DeeplinkDetails>` | Stream of deep link events |
 
 ### Key Methods
@@ -412,6 +478,7 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | `setPushToken(token)` | Set FCM/APNs push token |
 | `setUserIdentifier(identifier)` | Set user ID for dashboard and reports |
 | `setUserAttributes(attributes)` | Set user attributes for analytics |
+| `setSDK(enabled)` | Enable or disable the SDK at runtime (consent) |
 | `generateLink(params)` | Generate a smart link |
 | `logInAppPurchase(transactionId)` | Log a store purchase |
 | `logCustomPurchase(type, priceInCents, currency, productId, startDate)` | Log a custom purchase |

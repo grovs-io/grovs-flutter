@@ -55,6 +55,9 @@
         <meta-data
             android:name="grovs_use_test_environment"
             android:value="true" />
+        <meta-data
+            android:name="grovs_enabled"
+            android:value="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

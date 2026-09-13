@@ -59,6 +59,21 @@ class Grovs {
     return GrovsPlatform.instance.generateLink(params);
   }
 
+  /// Enable or disable the SDK at runtime.
+  ///
+  /// While disabled, the SDK does not authenticate, track events, access the
+  /// clipboard, or make network requests. User attributes are retained for
+  /// sync after enabling. Enabling later replays any pending link.
+  ///
+  /// The app must persist its consent decision. For a consent flow, start the
+  /// SDK disabled by setting `GrovsEnabled` to false in the iOS Info.plist and
+  /// `grovs_enabled` to false in the Android manifest, then enable after consent.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> setSDK(bool enabled) {
+    return GrovsPlatform.instance.setSDK(enabled);
+  }
+
   /// Set the user identifier
   ///
   /// Associates a unique identifier with the current user for tracking and attribution
@@ -280,6 +295,14 @@ class Grovs {
   Future<void> setScreenAliases(Map<String, String> aliases) {
     _screenAliases = Map<String, String>.from(aliases);
     return GrovsPlatform.instance.setScreenAliases(aliases);
+  }
+
+  /// Stream of asynchronous SDK errors on iOS.
+  ///
+  /// The native iOS plugin buffers the latest 20 errors before a listener
+  /// subscribes. Unknown error codes are ignored. Android emits no events.
+  Stream<GrovsError> get onError {
+    return GrovsPlatform.instance.onError;
   }
 
   /// Stream of deeplink events

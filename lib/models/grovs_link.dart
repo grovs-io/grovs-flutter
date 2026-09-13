@@ -116,6 +116,14 @@ class GenerateLinkParams {
   /// Whether to show preview on Android
   final bool? showPreviewAndroid;
 
+  /// Whether the iOS link preview copies the link to the clipboard.
+  /// Null uses the project default.
+  final bool? copyToClipboardIos;
+
+  /// Whether the Android link preview copies the link to the clipboard.
+  /// Null uses the project default.
+  final bool? copyToClipboardAndroid;
+
   /// Tracking parameters for UTM analytics
   final TrackingParams? tracking;
 
@@ -128,6 +136,8 @@ class GenerateLinkParams {
     this.customRedirects,
     this.showPreviewIos,
     this.showPreviewAndroid,
+    this.copyToClipboardIos,
+    this.copyToClipboardAndroid,
     this.tracking,
   });
 
@@ -141,9 +151,49 @@ class GenerateLinkParams {
       'customRedirects': customRedirects?.toMap(),
       'showPreviewIos': showPreviewIos,
       'showPreviewAndroid': showPreviewAndroid,
+      'copyToClipboardIos': copyToClipboardIos,
+      'copyToClipboardAndroid': copyToClipboardAndroid,
       'tracking': tracking?.toMap(),
     };
   }
+}
+
+/// Native SDK error categories reported through the error stream.
+enum GrovsErrorCode {
+  authenticationFailed('authentication_failed'),
+  networkRequestFailed('network_request_failed'),
+  eventDispatchFailed('event_dispatch_failed'),
+  linkGenerationFailed('link_generation_failed');
+
+  final String nativeName;
+
+  const GrovsErrorCode(this.nativeName);
+
+  /// Returns null for missing or unsupported native error codes.
+  static GrovsErrorCode? fromNativeName(String? name) {
+    for (final code in values) {
+      if (code.nativeName == name) return code;
+    }
+    return null;
+  }
+}
+
+/// An asynchronous error reported by the native SDK.
+class GrovsError {
+  final GrovsErrorCode code;
+  final String message;
+
+  const GrovsError({required this.code, required this.message});
+
+  /// Returns null when the native error code is unsupported.
+  static GrovsError? fromMap(Map<dynamic, dynamic> map) {
+    final code = GrovsErrorCode.fromNativeName(map['code'] as String?);
+    if (code == null) return null;
+    return GrovsError(code: code, message: map['message'] as String? ?? '');
+  }
+
+  @override
+  String toString() => 'GrovsError: $message (code: ${code.nativeName})';
 }
 
 /// Exception thrown by Grovs SDK
