@@ -80,6 +80,9 @@ data class CustomRedirects(val ios: CustomLinkRedirect?, val android: CustomLink
 data class TrackingParams(val utmCampaign: String?, val utmSource: String?, val utmMedium: String?)
 enum class LogLevel { INFO, ERROR }
 enum class PaymentEventType { BUY, CANCEL, REFUND }
+data class InstantCompat(val epochMillis: Long) {
+    companion object { fun ofEpochMilli(millis: Long) = InstantCompat(millis) }
+}
 class GrovsException(message: String) : Exception(message)
 data class LinkDetails(val link: String?, val data: Any? = null, val tracking: Any? = null)
 object Grovs {
@@ -100,7 +103,7 @@ object Grovs {
     }
     fun setDebug(level: LogLevel) {}
     fun logInAppPurchase(id: String) {}
-    fun logCustomPurchase(type: PaymentEventType, price: Int, currency: String, product: String) {}
+    fun logCustomPurchase(type: PaymentEventType, price: Int, currency: String, product: String, startDate: InstantCompat? = null) {}
     fun track(name: String, properties: Map<String, Any>?, tags: List<String>?) {}
     fun setGlobalTags(tags: List<String>?) {}
     fun trackScreenView(name: String, properties: Map<String, Any>?) {}

@@ -318,10 +318,8 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
                 return
             }
 
-            var startDate: Date?
-            if let dateString = args["startDate"] as? String {
-                let formatter = ISO8601DateFormatter()
-                startDate = formatter.date(from: dateString)
+            let startDate = (args["startDate"] as? NSNumber).map {
+                Date(timeIntervalSince1970: $0.doubleValue / 1000)
             }
 
             Grovs.logCustomPurchase(type: type, priceInCents: priceInCents, currency: currency, productID: productId, startDate: startDate) { success in

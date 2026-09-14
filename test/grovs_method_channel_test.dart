@@ -218,6 +218,38 @@ void main() {
     });
   });
 
+  for (final startDate in <DateTime?>[
+    DateTime.utc(2026, 9, 14, 10, 30, 15, 250),
+    DateTime(2026, 9, 14, 10, 30),
+    null,
+  ]) {
+    test('logCustomPurchase sends startDate $startDate as epoch ms', () async {
+      MethodCall? captured;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall call) async {
+            captured = call;
+            return null;
+          });
+
+      await platform.logCustomPurchase(
+        type: TransactionType.buy,
+        priceInCents: 999,
+        currency: 'USD',
+        productId: 'pro',
+        startDate: startDate,
+      );
+
+      expect(captured?.method, 'logCustomPurchase');
+      expect(captured?.arguments, {
+        'type': 'buy',
+        'priceInCents': 999,
+        'currency': 'USD',
+        'productId': 'pro',
+        'startDate': startDate?.millisecondsSinceEpoch,
+      });
+    });
+  }
+
   test('setScreenAliases sends correct method and arguments', () async {
     MethodCall? captured;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

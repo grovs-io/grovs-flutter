@@ -21,6 +21,7 @@ import io.grovs.model.LogLevel
 import io.grovs.model.exceptions.GrovsException
 import io.grovs.service.CustomRedirects
 import io.grovs.service.TrackingParams
+import io.grovs.utils.InstantCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -397,7 +398,9 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val priceInCents = call.argument<Int>("priceInCents")
                 val currency = call.argument<String>("currency")
                 val productId = call.argument<String>("productId")
-                val startDateString = call.argument<String>("startDate")
+                val startDate = call.argument<Number>("startDate")?.let {
+                    InstantCompat.ofEpochMilli(it.toLong())
+                }
 
                 if (typeString == null || priceInCents == null || currency == null || productId == null) {
                     result.error("INVALID_ARGUMENT", "type, priceInCents, currency, and productId are required", null)
@@ -415,7 +418,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 }
 
                 try {
-                    Grovs.logCustomPurchase(type, priceInCents, currency, productId)
+                    Grovs.logCustomPurchase(type, priceInCents, currency, productId, startDate)
                     result.success(null)
                 } catch (e: Exception) {
                     result.error("PAYMENT_ERROR", e.message, null)

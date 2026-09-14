@@ -18,6 +18,10 @@ Behavior changes on upgrade:
 * Android: the native SDK is configured once per process even when several Flutter engines attach.
 * iOS: a deep link lookup that was in flight when `setSDK(false)` was called is dropped by the plugin. If consent is granted again before that lookup completes, the native SDK may still deliver it.
 
+Fixed:
+
+* `logCustomPurchase` now forwards `startDate` on both platforms. Before, it was ignored and the native SDK used the current time.
+
 ## 1.1.0
 
 * Added custom base URL support via Info.plist (iOS) and AndroidManifest.xml (Android)

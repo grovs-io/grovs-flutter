@@ -140,7 +140,7 @@ class MethodChannelGrovs extends GrovsPlatform {
         'priceInCents': priceInCents,
         'currency': currency,
         'productId': productId,
-        'startDate': startDate?.toIso8601String(),
+        'startDate': startDate?.millisecondsSinceEpoch,
       });
     } on PlatformException catch (e) {
       throw GrovsException(
