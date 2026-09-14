@@ -71,6 +71,7 @@ example/.flutter-plugins-dependencies
 coverage/
 
 # Misc
+/doc/plans/
 *.log
 *.pyc
 *.swp
