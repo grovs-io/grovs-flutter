@@ -31,47 +31,19 @@ extension Array where Element == Any {
     }
 }
 
-/// Forwards native events to Dart, buffering the ones raised before Dart subscribes.
-private final class BufferedStreamHandler: NSObject, FlutterStreamHandler {
-    private var sink: FlutterEventSink?
-    private var pending: [[String: Any]] = []
-    private let maxPending = 20
-    var onListenHook: (() -> Void)?
-
-    func send(_ event: [String: Any]) {
-        if let sink = sink {
-            sink(event)
-            return
-        }
-        pending.append(event)
-        if pending.count > maxPending {
-            pending.removeFirst()
-        }
-    }
-
-    func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-        onListenHook?()
-        sink = events
-        pending.forEach { events($0) }
-        pending.removeAll()
-        return nil
-    }
-
-    func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        sink = nil
-        return nil
-    }
-}
-
 public class GrovsPlugin: NSObject, FlutterPlugin {
     private enum PendingLaunchLink {
         case userActivity(NSUserActivity)
         case url(URL)
     }
 
+    private static let events = GrovsEventRelay()
+
     private var methodChannel: FlutterMethodChannel?
-    private let errorStream = BufferedStreamHandler()
-    private let deeplinkStream = BufferedStreamHandler()
+    private var eventChannel: FlutterEventChannel?
+    private var errorChannel: FlutterEventChannel?
+    private let errorStream = BufferedStreamHandler(stream: GrovsPlugin.events.errors)
+    private let deeplinkStream = BufferedStreamHandler(stream: GrovsPlugin.events.deeplinks)
 
     // Consent state and the launch link received while disabled are shared by
     // every engine because the SDK is configured once per process.
@@ -83,18 +55,28 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         let eventChannel = FlutterEventChannel(name: "grovs/deeplinks", binaryMessenger: registrar.messenger())
         
         let instance = GrovsPlugin()
-        // The subscribing engine owns the SDK's weak delegate.
-        instance.deeplinkStream.onListenHook = { [weak instance] in
-            guard let instance = instance else { return }
-            Grovs.delegate = instance
-        }
+        Grovs.delegate = events
         instance.methodChannel = channel
+        instance.eventChannel = eventChannel
+        registrar.publish(instance)
         
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
         eventChannel.setStreamHandler(instance.deeplinkStream)
         let errorChannel = FlutterEventChannel(name: "grovs/errors", binaryMessenger: registrar.messenger())
+        instance.errorChannel = errorChannel
         errorChannel.setStreamHandler(instance.errorStream)
+    }
+
+    public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+        _ = deeplinkStream.onCancel(withArguments: nil)
+        _ = errorStream.onCancel(withArguments: nil)
+        eventChannel?.setStreamHandler(nil)
+        errorChannel?.setStreamHandler(nil)
+        methodChannel?.setMethodCallHandler(nil)
+        eventChannel = nil
+        errorChannel = nil
+        methodChannel = nil
     }
 
     // Hook into didFinishLaunchingWithOptions
@@ -106,6 +88,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             let clipboardDomains = infoDictionary["GrovsClipboardDomains"] as? [String]
             let enabled = infoDictionary["GrovsEnabled"] as? Bool ?? true
             GrovsPlugin.sdkEnabled = enabled
+            GrovsPlugin.events.deeplinks.enabled = enabled
             Grovs.configure(
                 APIKey: apiKey,
                 useTestEnvironment: useTestEnvironment,
@@ -113,7 +96,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
                 autoTrackScreenViews: false,
                 clipboardDomains: clipboardDomains,
                 enabled: enabled,
-                delegate: self
+                delegate: GrovsPlugin.events
             )
         }
         
@@ -138,8 +121,9 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
     private func setSDKEnabled(_ enabled: Bool) {
         guard enabled != GrovsPlugin.sdkEnabled else { return }
-        Grovs.setSDK(enabled: enabled)
         GrovsPlugin.sdkEnabled = enabled
+        GrovsPlugin.events.deeplinks.enabled = enabled
+        Grovs.setSDK(enabled: enabled)
 
         guard enabled, let pending = GrovsPlugin.pendingLaunchLink else { return }
         GrovsPlugin.pendingLaunchLink = nil
@@ -401,30 +385,5 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         default:
             result(FlutterMethodNotImplemented)
         }
-    }
-}
-
-// MARK: - GrovsDelegate
-extension GrovsPlugin: GrovsDelegate {
-    public func grovsDidEncounterError(_ error: GrovsError, message: String) {
-        errorStream.send(["code": error.description, "message": message])
-    }
-
-    public func grovsReceivedPayloadFromDeeplink(link: String?, payload: [String : Any]?, tracking: [String : Any]?) {
-        // Drop lookups that complete after consent is withdrawn.
-        guard GrovsPlugin.sdkEnabled else { return }
-        
-        var eventData: [String: Any] = [:]
-        if let link = link {
-            eventData["link"] = link
-        }
-        if let payload = payload {
-            eventData["data"] = payload
-        }
-        if let tracking = tracking {
-            eventData["tracking"] = tracking
-        }
-        
-        deeplinkStream.send(eventData)
     }
 }
