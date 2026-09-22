@@ -49,7 +49,7 @@ def jar(artifact, version):
 def kotlin(out):
     source = (ROOT / "android/src/main/kotlin/io/grovs/wrapper/GrovsPlugin.kt").read_text()
     # Compile the complete bridge; only platform imports are replaced by stubs.
-    source = re.sub(r"^(package io\..*|import (android|io)\..*)\n", "", source, flags=re.M)
+    source = re.sub(r"^(package io\..*|import (android|androidx|io)\..*)\n", "", source, flags=re.M)
     (out / "GrovsPlugin.kt").write_text(source)
     (out / "Build.kt").write_text('package android.os\nobject Build { object VERSION { const val RELEASE = "test" } }\n')
     compiler = [jar(a, v) for a, v in [

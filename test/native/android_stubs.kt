@@ -5,8 +5,25 @@ typealias Result = MethodChannel.Result
 typealias MethodCallHandler = MethodChannel.MethodCallHandler
 class Intent
 open class Activity { var intent: Intent? = null }
-class FlutterActivity : Activity()
-class FlutterFragmentActivity : Activity()
+interface LifecycleObserver
+fun interface LifecycleEventObserver : LifecycleObserver { fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) }
+interface LifecycleOwner { val lifecycle: Lifecycle }
+class Lifecycle(private val owner: LifecycleOwner) {
+    enum class Event { ON_START, ON_STOP }
+    private var started = false
+    val observers = mutableListOf<LifecycleEventObserver>()
+    fun addObserver(observer: LifecycleObserver) {
+        observer as LifecycleEventObserver
+        observers.add(observer)
+        if (started) observer.onStateChanged(owner, Event.ON_START)
+    }
+    fun removeObserver(observer: LifecycleObserver) { observers.remove(observer) }
+    fun start() { started = true; observers.toList().forEach { it.onStateChanged(owner, Event.ON_START) } }
+    fun stop() { started = false; observers.toList().forEach { it.onStateChanged(owner, Event.ON_STOP) } }
+}
+open class HostActivity : Activity(), LifecycleOwner { override val lifecycle = Lifecycle(this) }
+class FlutterActivity : HostActivity()
+class FlutterFragmentActivity : HostActivity()
 class Bundle {
     fun getString(key: String): String? = null
     fun getBoolean(key: String, fallback: Boolean) = fallback

@@ -5,8 +5,9 @@ import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.android.FlutterFragmentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -46,12 +47,12 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var activityBinding: ActivityPluginBinding? = null
     private lateinit var coroutineScope: CoroutineScope
     private var newIntentListener: PluginRegistry.NewIntentListener? = null
+    private var hostLifecycle: Lifecycle? = null
     private val pendingDeeplinks = mutableListOf<Map<String, Any?>>()
     private val maxPendingDeeplinks = 20
 
     companion object {
-        // Native configure and lifecycle registration must run once per process,
-        // even when several Flutter engines attach.
+        // Native configure must run once per process, even when several Flutter engines attach.
         private var configured = false
 
         // Last consent value handed to the native SDK, shared by all engines.
@@ -69,18 +70,11 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private val applicationLifecycleObserver: Application.ActivityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
-        override fun onActivityCreated(p0: Activity, p1: Bundle?) { }
-        override fun onActivityStarted(activity: Activity) {
-            if (activity is FlutterActivity || activity is FlutterFragmentActivity) {
-                handleActivityStart(activity)
-            }
-        }
-        override fun onActivityResumed(activity: Activity) { }
-        override fun onActivityPaused(activity: Activity) { }
-        override fun onActivityStopped(activity: Activity) { }
-        override fun onActivitySaveInstanceState(activity: Activity, p1: Bundle) {}
-        override fun onActivityDestroyed(activity: Activity) { }
+    // The host's own lifecycle replays a start that happened before the plugin attached. A
+    // FlutterFragmentActivity attaches its engine during onStart, after the application's
+    // activity-started callbacks have already fired, so those callbacks would miss the launch.
+    private val hostStartObserver = LifecycleEventObserver { source, event ->
+        if (event == Lifecycle.Event.ON_START) (source as? Activity)?.let { handleActivityStart(it) }
     }
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -143,7 +137,6 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             clipboardDomains,
             sdkEnabled
         )
-        application.registerActivityLifecycleCallbacks(applicationLifecycleObserver)
         configured = true
     }
 
@@ -197,6 +190,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private fun attachActivity(binding: ActivityPluginBinding) {
         activityBinding = binding
         registerNativeDeeplinkListener(binding.activity)
+        hostLifecycle = (binding.activity as? LifecycleOwner)?.lifecycle?.also { it.addObserver(hostStartObserver) }
 
         val listener = PluginRegistry.NewIntentListener { intent ->
             if (!sdkEnabled) pendingIntent = intent
@@ -208,6 +202,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun detachActivity() {
+        hostLifecycle?.removeObserver(hostStartObserver)
+        hostLifecycle = null
         newIntentListener?.let { activityBinding?.removeOnNewIntentListener(it) }
         newIntentListener = null
         activityBinding = null

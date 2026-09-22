@@ -1,3 +1,9 @@
+## 3.0.2
+
+Fixed:
+
+* Android: the SDK is now started from the host activity's own lifecycle instead of application-wide activity callbacks. A `FlutterFragmentActivity` attaches the Flutter engine during `onStart`, after those callbacks have fired, so the first launch was missed and deferred deep links only resolved after the app went to the background and back. 3.0.1 accepted `FlutterFragmentActivity` hosts but did not cover this.
+
 ## 3.0.1
 
 Fixed:

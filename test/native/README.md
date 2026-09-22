@@ -17,8 +17,8 @@ directory and are removed after the run.
 
 Coverage includes buffer limits and ordering, consent withdrawal across engines,
 queued callback rejection, engine replacement, error-only subscriptions, weak
-ownership, late cancellation, activity rotation, which host activities start
-the SDK, and cancellation and reuse of link generation.
+ownership, late cancellation, activity rotation, starting the SDK from the host
+lifecycle before and after onStart, and cancellation and reuse of link generation.
 
 These tests do not verify SDK API compatibility or device behavior. Run native
 builds and device checks separately when the required SDK releases are available.

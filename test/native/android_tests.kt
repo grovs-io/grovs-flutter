@@ -7,9 +7,9 @@ private class Reply : MethodChannel.Result {
     override fun error(code: String, message: String?, details: Any?) { values.add(code) }
     override fun notImplemented() { error("Unexpected unimplemented method") }
 }
-private class Engine(val plugin: GrovsPlugin = GrovsPlugin()) {
+private class Engine(val plugin: GrovsPlugin = GrovsPlugin(), host: Activity = Activity()) {
     val binding = FlutterPlugin.FlutterPluginBinding()
-    val activity = ActivityPluginBinding()
+    val activity = ActivityPluginBinding(host)
     val received = mutableListOf<Any?>()
     init { plugin.onAttachedToEngine(binding); plugin.onAttachedToActivity(activity) }
     val stream get() = binding.binaryMessenger.events.getValue("grovs/deeplinks").handler!!
@@ -97,14 +97,29 @@ fun main() = runBlocking {
     }
     println("PASS Android: activity rotation removes and restores one intent listener")
 
-    // The lifecycle observer is registered once, on the first engine's application.
+    // A FlutterFragmentActivity attaches its engine, and so the plugin, during onStart, after the
+    // application's activity-started callbacks have already fired. The plugin must take the start
+    // from the host's own lifecycle, which replays it to a late observer.
     Grovs.started.clear()
-    val hosts = listOf(FlutterActivity(), FlutterFragmentActivity())
-    for (host in hosts + Activity()) {
-        first.binding.applicationContext.callbacks.forEach { it.onActivityStarted(host) }
-    }
-    check(Grovs.started == hosts) { "started: ${Grovs.started}" }
-    println("PASS Android: both Flutter host activities start the SDK, other activities do not")
+    val lateHost = FlutterFragmentActivity()
+    lateHost.lifecycle.start()
+    val late = Engine(GrovsPlugin(), lateHost)
+    check(Grovs.started == listOf<Activity>(lateHost)) { "late attach: ${Grovs.started}" }
+    lateHost.lifecycle.stop(); lateHost.lifecycle.start()
+    check(Grovs.started == listOf<Activity>(lateHost, lateHost)) { "restart: ${Grovs.started}" }
+    late.plugin.onDetachedFromActivity()
+    lateHost.lifecycle.stop(); lateHost.lifecycle.start()
+    check(Grovs.started.size == 2 && lateHost.lifecycle.observers.isEmpty()) { "after detach: ${Grovs.started}" }
+    late.close()
+
+    Grovs.started.clear()
+    val earlyHost = FlutterActivity()
+    val early = Engine(GrovsPlugin(), earlyHost)
+    check(Grovs.started.isEmpty()) { "before start: ${Grovs.started}" }
+    earlyHost.lifecycle.start()
+    check(Grovs.started == listOf<Activity>(earlyHost)) { "early attach: ${Grovs.started}" }
+    early.close()
+    println("PASS Android: the host lifecycle starts the SDK whether the plugin attaches before or after onStart")
 
     Grovs.generated = CompletableDeferred()
     Grovs.generationStarted = CompletableDeferred()

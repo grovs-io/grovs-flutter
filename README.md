@@ -56,7 +56,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^3.0.1
+  grovs_flutter_plugin: ^3.0.2
 ```
 
 Then run:
