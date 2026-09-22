@@ -56,7 +56,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^3.0.0
+  grovs_flutter_plugin: ^3.0.1
 ```
 
 Then run:
@@ -131,6 +131,8 @@ Add these to your main activity for deep link handling:
 </activity>
 ```
 
+The main activity can extend either `FlutterActivity` or `FlutterFragmentActivity`. The plugin hooks the activity lifecycle itself, so no native code is needed to receive deep links or deferred deep links.
+
 ### iOS
 
 **1. Add configuration to `Info.plist`**
@@ -204,7 +206,7 @@ await grovs.setUserAttributes({
 
 ### Handle deep links
 
-Subscribe to the `onDeeplinkReceived` stream to handle incoming deep links:
+Subscribe to the `onDeeplinkReceived` stream to handle incoming deep links. Links tapped before the app was installed arrive on the same stream shortly after the first launch, once the SDK has resolved them:
 
 ```dart
 import 'dart:async';
