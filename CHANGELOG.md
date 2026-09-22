@@ -1,3 +1,9 @@
+## 3.0.1
+
+Fixed:
+
+* Android: deferred deep links were never resolved on first launch when the host activity extends `FlutterFragmentActivity`. The plugin only started the SDK for `FlutterActivity` hosts. Both host activities now start it.
+
 ## 3.0.0
 
 Aligned with native Grovs SDKs 3.0.0 (Android `io.grovs:Grovs:3.0.0`, iOS `Grovs ~> 3.0`).

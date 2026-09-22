@@ -6,6 +6,7 @@ typealias MethodCallHandler = MethodChannel.MethodCallHandler
 class Intent
 open class Activity { var intent: Intent? = null }
 class FlutterActivity : Activity()
+class FlutterFragmentActivity : Activity()
 class Bundle {
     fun getString(key: String): String? = null
     fun getBoolean(key: String, fallback: Boolean) = fallback
@@ -92,9 +93,10 @@ object Grovs {
     var pushToken: String? = null
     var identifier: String? = null
     var attributes: Map<String, Any>? = null
+    val started = mutableListOf<Activity>()
     fun configure(application: Application, key: String, test: Boolean, url: String?, auto: Boolean, domains: List<String>?, enabled: Boolean) {}
     fun setSDK(enabled: Boolean) {}
-    fun onStart(activity: Activity) {}
+    fun onStart(activity: Activity) { started.add(activity) }
     fun onNewIntent(intent: Intent, activity: Activity) {}
     fun setOnDeeplinkReceivedListener(activity: Activity, callback: (LinkDetails) -> Unit) { listener = callback }
     suspend fun generateLink(title: String, subtitle: String?, imageURL: String?, data: Map<String, Serializable>?, tags: List<String>?, customRedirects: CustomRedirects?, showPreviewIos: Boolean?, showPreviewAndroid: Boolean?, copyToClipboardIos: Boolean?, copyToClipboardAndroid: Boolean?, tracking: TrackingParams?): String {

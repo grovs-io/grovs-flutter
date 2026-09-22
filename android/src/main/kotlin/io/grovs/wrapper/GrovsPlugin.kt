@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -71,7 +72,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private val applicationLifecycleObserver: Application.ActivityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(p0: Activity, p1: Bundle?) { }
         override fun onActivityStarted(activity: Activity) {
-            if (activity is FlutterActivity) {
+            if (activity is FlutterActivity || activity is FlutterFragmentActivity) {
                 handleActivityStart(activity)
             }
         }

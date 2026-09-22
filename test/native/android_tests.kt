@@ -97,6 +97,15 @@ fun main() = runBlocking {
     }
     println("PASS Android: activity rotation removes and restores one intent listener")
 
+    // The lifecycle observer is registered once, on the first engine's application.
+    Grovs.started.clear()
+    val hosts = listOf(FlutterActivity(), FlutterFragmentActivity())
+    for (host in hosts + Activity()) {
+        first.binding.applicationContext.callbacks.forEach { it.onActivityStarted(host) }
+    }
+    check(Grovs.started == hosts) { "started: ${Grovs.started}" }
+    println("PASS Android: both Flutter host activities start the SDK, other activities do not")
+
     Grovs.generated = CompletableDeferred()
     Grovs.generationStarted = CompletableDeferred()
     val cancelled = Reply()
