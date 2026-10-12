@@ -148,21 +148,7 @@ class _MyAppState extends State<MyApp> {
             'timestamp': DateTime.now().toIso8601String(),
           },
           tags: ['demo', 'flutter'],
-          customRedirects: CustomRedirects(
-            ios: CustomLinkRedirect(
-              url: 'https://google.com/ios',
-              openAppIfInstalled: true,
-            ),
-            android: CustomLinkRedirect(
-              url: 'https://google.com/android',
-              openAppIfInstalled: false,
-            ),
-            desktop: CustomLinkRedirect(
-              url: 'https://google.com/desktop',
-              openAppIfInstalled: false,
-            ),
-          ),
-          showPreviewIos: false,
+          showPreviewIos: true,
           showPreviewAndroid: true,
           tracking: TrackingParams(
             utmCampaign: 'spring_sale',
