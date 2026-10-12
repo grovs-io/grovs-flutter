@@ -7,6 +7,10 @@ Added:
 * iOS: Swift Package Manager support. CocoaPods still works.
 * `handleUrl(url)` resolves a Grovs link tapped inside your app. The system does not hand a universal link or app link back to the app that opened it, so these links used to open in a browser.
 
+Changed:
+
+* iOS: the plugin no longer claims incoming links, the same as on Android. Other plugins, such as login callbacks, now always receive their links. Set `FlutterDeepLinkingEnabled` to `false` in `Info.plist` (and `flutter_deeplinking_enabled` to `false` in the Android manifest), otherwise Flutter's own deep linking also opens Grovs links and can send them to Safari.
+
 Fixed:
 
 * iOS: apps using the UIScene lifecycle lost the link that launched the app from a closed state. This includes new Flutter apps and apps that Flutter 3.41 or later migrated automatically. The plugin now receives scene events itself. If you added your own SceneDelegate code that forwards links to Grovs, remove it, or links will be delivered twice.

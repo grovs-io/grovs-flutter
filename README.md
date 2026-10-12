@@ -133,6 +133,14 @@ Add these to your main activity for deep link handling:
 
 The main activity can extend either `FlutterActivity` or `FlutterFragmentActivity`. The plugin hooks the activity lifecycle itself, so no native code is needed to receive deep links or deferred deep links.
 
+**3. Turn off Flutter's built-in deep linking**
+
+Grovs passes every link on to other plugins, so Flutter's own deep linking would also open Grovs links as routes. Add this inside the main activity:
+
+```xml
+<meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
+```
+
 ### iOS
 
 **1. Add configuration to `Info.plist`**
@@ -184,7 +192,16 @@ Add custom URL scheme support to `Info.plist`:
 3. Click **+ Capability** → add **Associated Domains**
 4. Add `applinks:your_app_host` and `applinks:your_app_test_host`
 
-**4. App lifecycle**
+**4. Turn off Flutter's built-in deep linking**
+
+Grovs passes every link on to other plugins, so Flutter's own deep linking would also open Grovs links as routes, and send links without a matching route back to Safari. Add to `Info.plist`:
+
+```xml
+<key>FlutterDeepLinkingEnabled</key>
+<false/>
+```
+
+**5. App lifecycle**
 
 Nothing to add. The plugin works with both the UIScene lifecycle (`FlutterSceneDelegate`, the default for new Flutter apps) and AppDelegate-only apps. If you wrote your own scene delegate code that calls `Grovs.handleSceneDelegate`, remove it, otherwise every link is delivered twice. If your scene delegate does not extend `FlutterSceneDelegate`, follow https://flutter.dev/to/uiscene-migration so Flutter can pass scene events to plugins.
 
