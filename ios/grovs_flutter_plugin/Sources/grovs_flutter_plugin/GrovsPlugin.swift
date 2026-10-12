@@ -58,12 +58,15 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         return true
     }
 
+    // Links are handed to Grovs but never claimed, so other plugins still receive them.
     public func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]) -> Void) -> Bool {
-        GrovsPlugin.deliver(.userActivity(userActivity))
+        _ = GrovsPlugin.deliver(.userActivity(userActivity))
+        return false
     }
 
     public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        GrovsPlugin.deliver(.url(url))
+        _ = GrovsPlugin.deliver(.url(url))
+        return false
     }
 
     static func configureFromInfoPlist(_ info: [String: Any]? = Bundle.main.infoDictionary) {

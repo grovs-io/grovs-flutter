@@ -6,7 +6,7 @@ GrovsPlugin.register(with: registrar)
 let plugin = registrar.instance!
 let cold = "https://app.sqd.link/cold"
 
-precondition(plugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(
+precondition(!plugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(
     userActivities: [webActivity(cold)])))
 precondition(Grovs.log == ["configure enabled=false", "link \(cold)"])
 print("PASS iOS launch: a scene connection configures the SDK from Info.plist before delivering the link")

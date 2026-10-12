@@ -49,8 +49,8 @@ class Grovs {
     }
     static func setSDK(enabled: Bool) { log.append("setSDK \(enabled)") }
     static func handleAppDelegate(continue activity: NSUserActivity, restorationHandler: ([Any]) -> Void) -> Bool {
-        log.append("link \(activity.webpageURL!.absoluteString)")
-        return true
+        log.append("link \(activity.webpageURL?.absoluteString ?? activity.activityType)")
+        return activity.webpageURL != nil
     }
     static func handleAppDelegate(open url: URL, options: [String: Any]) -> Bool {
         log.append("link \(url.absoluteString)")
