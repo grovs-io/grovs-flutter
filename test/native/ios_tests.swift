@@ -146,3 +146,23 @@ precondition(scenePlugin.scene(UIScene(), openURLContexts: [UIOpenURLContext(url
 precondition(links() == [universal, scheme, "https://app.sqd.link/warm", "grovstest://warm"])
 scenePlugin.detachFromEngine(for: sceneEngine)
 print("PASS iOS: scene launch, URL and user activity events each reach the SDK once")
+
+func handleUrl(_ url: Any?) -> Any { GrovsPlugin.handleUrl(arguments: ["url": url as Any]) }
+func isInvalid(_ value: Any) -> Bool { (value as? FlutterError)?.code == "INVALID_ARGUMENT" }
+
+let manualEngine = engine()
+let manualPlugin = manualEngine.instance!
+Grovs.log.removeAll()
+for invalid in ["", "not a url", "relative/path", "https://", "mailto:a@b.c"] {
+    precondition(isInvalid(handleUrl(invalid)), "accepted \(invalid)")
+}
+precondition(isInvalid(handleUrl(nil)) && isInvalid(handleUrl(42)) && isInvalid(GrovsPlugin.handleUrl(arguments: nil)))
+precondition(links().isEmpty)
+precondition(handleUrl("https://app.sqd.link/manual") as? Bool == true)
+precondition(handleUrl("grovstest://app.sqd.link/manual") as? Bool == true)
+manualPlugin.setSDKEnabled(false)
+precondition(handleUrl("https://app.sqd.link/manual") as? Bool == false)
+manualPlugin.setSDKEnabled(true)
+precondition(links() == ["https://app.sqd.link/manual", "grovstest://app.sqd.link/manual"])
+manualPlugin.detachFromEngine(for: manualEngine)
+print("PASS iOS: handleUrl validates input, reaches the SDK only while enabled, and never queues")

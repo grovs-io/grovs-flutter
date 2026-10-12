@@ -42,6 +42,7 @@ def swift(out):
         "    public func application(_ app: UIApplication, open",
         "    static func configureFromInfoPlist",
         "    static func deliver",
+        "    static func handleUrl(arguments",
         "    private func setSDKEnabled",
     ):
         bridge += function(plugin, marker) + "\n"

@@ -1,7 +1,11 @@
 import Foundation
 
 typealias FlutterEventSink = (Any?) -> Void
-class FlutterError: NSObject {}
+class FlutterError: NSObject {
+    var code = ""
+    override init() {}
+    init(code: String, message: String?, details: Any?) { self.code = code }
+}
 protocol FlutterStreamHandler {
     func onListen(withArguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError?
     func onCancel(withArguments: Any?) -> FlutterError?

@@ -95,6 +95,18 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         }
     }
 
+    static func handleUrl(arguments: Any?) -> Any {
+        guard let args = arguments as? [String: Any],
+              let urlString = args["url"] as? String,
+              let url = URL(string: urlString),
+              url.scheme != nil,
+              url.host?.isEmpty == false else {
+            return FlutterError(code: "INVALID_ARGUMENT", message: "url must be an absolute URL with a host", details: nil)
+        }
+        guard sdkEnabled else { return false }
+        return deliver(.url(url))
+    }
+
     private func setSDKEnabled(_ enabled: Bool) {
         guard enabled != GrovsPlugin.sdkEnabled else { return }
         GrovsPlugin.sdkEnabled = enabled
@@ -350,6 +362,9 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
             setSDKEnabled(enabled)
             result(nil)
+
+        case "handleUrl":
+            result(GrovsPlugin.handleUrl(arguments: call.arguments))
 
         default:
             result(FlutterMethodNotImplemented)
