@@ -9,6 +9,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
+IOS = ROOT / "ios/grovs_flutter_plugin/Sources/grovs_flutter_plugin"
 CACHE = Path(os.environ.get("GRADLE_USER_HOME", Path.home() / ".gradle")) / "caches/modules-2/files-2.1"
 
 
@@ -27,8 +28,8 @@ def function(source, marker):
 
 
 def swift(out):
-    relay = (ROOT / "ios/Classes/GrovsEventRelay.swift").read_text()
-    plugin = (ROOT / "ios/Classes/GrovsPlugin.swift").read_text()
+    relay = (IOS / "GrovsEventRelay.swift").read_text()
+    plugin = (IOS / "GrovsPlugin.swift").read_text()
     # Include the real registration, engine cleanup, and consent methods.
     bridge = plugin[:plugin.index("    // Hook into didFinishLaunchingWithOptions")]
     bridge += function(plugin, "    private func setSDKEnabled") + "\n}\n"

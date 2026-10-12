@@ -9,7 +9,7 @@ Deep linking, smart links, analytics, user messaging, and campaign tracking for 
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Grovs' => 'support@grovs.io' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'grovs_flutter_plugin/Sources/grovs_flutter_plugin/**/*.swift'
   s.dependency 'Flutter'
   s.dependency 'Grovs', '~> 3.0'
   s.platform = :ios, '13.0'
