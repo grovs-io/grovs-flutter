@@ -7,7 +7,7 @@ issue_tracker: https://github.com/grovs-io/grovs-flutter/issues
 
 environment:
   sdk: ^3.9.2
-  flutter: '>=3.3.0'
+  flutter: '>=3.38.0'
 
 dependencies:
   flutter:

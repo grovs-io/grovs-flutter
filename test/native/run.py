@@ -27,12 +27,13 @@ def function(source, marker):
     return source[start:end]
 
 
-IOS_TEST_PROGRAMS = ["ios_tests.swift"]
+IOS_TEST_PROGRAMS = ["ios_tests.swift", "ios_launch_tests.swift"]
 
 
 def swift(out):
     relay = (IOS / "GrovsEventRelay.swift").read_text()
     plugin = (IOS / "GrovsPlugin.swift").read_text()
+    scene = (IOS / "GrovsPlugin+Scene.swift").read_text()
     # Include the real registration, engine cleanup, lifecycle, configuration, link delivery and consent methods.
     bridge = plugin[:plugin.index("    // Hook into didFinishLaunchingWithOptions")]
     for marker in (
@@ -44,7 +45,7 @@ def swift(out):
         "    private func setSDKEnabled",
     ):
         bridge += function(plugin, marker) + "\n"
-    bridge += "}\n"
+    bridge += "}\n" + scene
     bridge = bridge.replace("public ", "").replace("private func setSDKEnabled", "func setSDKEnabled")
     bridge = bridge.replace("[UIApplication.OpenURLOptionsKey : Any]", "[String: Any]")
     bridge = bridge.replace("Bundle.main.infoDictionary", "testInfoDictionary")

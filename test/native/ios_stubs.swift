@@ -32,6 +32,8 @@ class FlutterPluginRegistrar {
     func publish(_ instance: GrovsPlugin) { self.instance = instance }
     func addMethodCallDelegate(_ instance: GrovsPlugin, channel: FlutterMethodChannel) {}
     func addApplicationDelegate(_ instance: GrovsPlugin) {}
+    weak var sceneDelegate: GrovsPlugin?
+    func addSceneDelegate(_ instance: GrovsPlugin) { sceneDelegate = instance }
 }
 class UIApplication {}
 var testInfoDictionary: [String: Any]? = nil
@@ -58,4 +60,21 @@ func webActivity(_ link: String) -> NSUserActivity {
     let activity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
     activity.webpageURL = URL(string: link)!
     return activity
+}
+
+protocol FlutterSceneLifeCycleDelegate {}
+class UISceneSession {}
+class UIOpenURLContext: NSObject {
+    let url: URL
+    init(url: URL) { self.url = url }
+}
+class UIScene {
+    class ConnectionOptions {
+        let userActivities: Set<NSUserActivity>
+        let urlContexts: Set<UIOpenURLContext>
+        init(userActivities: Set<NSUserActivity> = [], urlContexts: Set<UIOpenURLContext> = []) {
+            self.userActivities = userActivities
+            self.urlContexts = urlContexts
+        }
+    }
 }

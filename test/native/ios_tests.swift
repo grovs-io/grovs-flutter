@@ -125,3 +125,24 @@ linkPlugin.setSDKEnabled(false); linkPlugin.setSDKEnabled(true)
 precondition(links().count == 4)
 linkPlugin.detachFromEngine(for: linkEngine)
 print("PASS iOS: app delegate links reach the SDK, and a link received while disabled is replayed once")
+
+let sceneEngine = engine()
+let scenePlugin = sceneEngine.instance!
+precondition(sceneEngine.sceneDelegate === scenePlugin)
+let universal = "https://app.sqd.link/cold"
+let scheme = "grovstest://cold"
+Grovs.log.removeAll()
+precondition(scenePlugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(
+    userActivities: [webActivity(universal)], urlContexts: [UIOpenURLContext(url: URL(string: scheme)!)])))
+precondition(links() == [universal])
+precondition(scenePlugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(
+    urlContexts: [UIOpenURLContext(url: URL(string: scheme)!)])))
+precondition(links() == [universal, scheme])
+precondition(!scenePlugin.scene(UIScene(), willConnectTo: UISceneSession(), options: nil))
+precondition(!scenePlugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions()))
+precondition(!scenePlugin.scene(UIScene(), openURLContexts: []))
+precondition(scenePlugin.scene(UIScene(), continue: webActivity("https://app.sqd.link/warm")))
+precondition(scenePlugin.scene(UIScene(), openURLContexts: [UIOpenURLContext(url: URL(string: "grovstest://warm")!)]))
+precondition(links() == [universal, scheme, "https://app.sqd.link/warm", "grovstest://warm"])
+scenePlugin.detachFromEngine(for: sceneEngine)
+print("PASS iOS: scene launch, URL and user activity events each reach the SDK once")

@@ -34,6 +34,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         
         registrar.addMethodCallDelegate(instance, channel: channel)
         registrar.addApplicationDelegate(instance)
+        registrar.addSceneDelegate(instance)
         eventChannel.setStreamHandler(instance.deeplinkStream)
         let errorChannel = FlutterEventChannel(name: "grovs/errors", binaryMessenger: registrar.messenger())
         instance.errorChannel = errorChannel
