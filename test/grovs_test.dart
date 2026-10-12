@@ -9,6 +9,7 @@ class MockGrovsPlatform
     with MockPlatformInterfaceMixin
     implements GrovsPlatform {
   final enabledStates = <bool>[];
+  final handledUrls = <String>[];
   GenerateLinkParams? generatedLinkParams;
   final Stream<GrovsError> errors = Stream<GrovsError>.value(
     GrovsError(
@@ -29,6 +30,12 @@ class MockGrovsPlatform
   @override
   Future<void> setSDK(bool enabled) async {
     enabledStates.add(enabled);
+  }
+
+  @override
+  Future<bool> handleUrl(String url) async {
+    handledUrls.add(url);
+    return true;
   }
 
   @override
@@ -125,6 +132,14 @@ void main() {
     await Grovs().setSDK(true);
 
     expect(fakePlatform.enabledStates, [false, true]);
+  });
+
+  test('handleUrl forwards the url and returns the platform result', () async {
+    final fakePlatform = MockGrovsPlatform();
+    GrovsPlatform.instance = fakePlatform;
+
+    expect(await Grovs().handleUrl('https://example.sqd.link/abc'), isTrue);
+    expect(fakePlatform.handledUrls, ['https://example.sqd.link/abc']);
   });
 
   test('onError forwards the platform stream', () async {

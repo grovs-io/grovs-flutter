@@ -61,6 +61,18 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<bool> handleUrl(String url) async {
+    try {
+      final handled = await methodChannel.invokeMethod<bool>('handleUrl', {
+        'url': url,
+      });
+      return handled ?? false;
+    } on PlatformException catch (e) {
+      throw GrovsException(e.message ?? 'Failed to handle URL', code: e.code);
+    }
+  }
+
+  @override
   Future<void> setPushToken(String token) async {
     try {
       await methodChannel.invokeMethod('setPushToken', {'token': token});

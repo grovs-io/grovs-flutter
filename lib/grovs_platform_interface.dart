@@ -38,6 +38,11 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('setSDK() has not been implemented.');
   }
 
+  /// Resolve a link opened inside the app.
+  Future<bool> handleUrl(String url) {
+    throw UnimplementedError('handleUrl() has not been implemented.');
+  }
+
   /// Set the push token for receiving push notifications
   Future<void> setPushToken(String token) {
     throw UnimplementedError('setPushToken() has not been implemented.');

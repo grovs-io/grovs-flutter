@@ -64,6 +64,39 @@ void main() {
     });
   }
 
+  for (final handled in <bool?>[true, false, null]) {
+    test('handleUrl sends the url and returns $handled as a bool', () async {
+      MethodCall? captured;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            captured = call;
+            return handled;
+          });
+
+      final result = await platform.handleUrl('https://example.sqd.link/abc');
+
+      expect(captured?.method, 'handleUrl');
+      expect(captured?.arguments, {'url': 'https://example.sqd.link/abc'});
+      expect(result, handled ?? false);
+    });
+  }
+
+  test('handleUrl wraps platform errors', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: 'INVALID_ARGUMENT');
+        });
+
+    await expectLater(
+      platform.handleUrl('not a url'),
+      throwsA(
+        isA<GrovsException>()
+            .having((error) => error.code, 'code', 'INVALID_ARGUMENT')
+            .having((error) => error.message, 'message', 'Failed to handle URL'),
+      ),
+    );
+  });
+
   for (final copyToClipboard in <bool?>[true, false, null]) {
     test('generateLink sends clipboard value $copyToClipboard', () async {
       MethodCall? captured;
