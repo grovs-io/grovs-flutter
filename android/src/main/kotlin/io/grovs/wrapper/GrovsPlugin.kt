@@ -3,6 +3,7 @@ package io.grovs.wrapper
 import android.app.Activity
 import android.app.Application
 import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.lifecycle.Lifecycle
@@ -497,6 +498,24 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 } catch (e: Exception) {
                     result.error("CONSENT_ERROR", e.message, null)
                 }
+            }
+
+            "handleUrl" -> {
+                val uri = (call.argument<Any>("url") as? String)?.let(Uri::parse)
+
+                if (uri?.scheme.isNullOrEmpty() || uri?.host.isNullOrEmpty()) {
+                    result.error("INVALID_ARGUMENT", "url must be an absolute URL with a host", null)
+                    return
+                }
+
+                val activity = activityBinding?.activity
+                if (!sdkEnabled || activity == null) {
+                    result.success(false)
+                    return
+                }
+
+                Grovs.onNewIntent(Intent(Intent.ACTION_VIEW, uri), activity)
+                result.success(true)
             }
 
             else -> {

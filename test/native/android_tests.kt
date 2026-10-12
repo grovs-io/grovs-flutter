@@ -121,6 +121,30 @@ fun main() = runBlocking {
     early.close()
     println("PASS Android: the host lifecycle starts the SDK whether the plugin attaches before or after onStart")
 
+    fun handleUrl(engine: Engine, url: Any?): List<Any?> {
+        val reply = Reply()
+        engine.plugin.onMethodCall(MethodCall("handleUrl", mapOf("url" to url)), reply)
+        return reply.values
+    }
+    val link = "https://example.sqd.link/abc"
+    Grovs.intents.clear()
+    val linkEngine = Engine()
+    for (invalid in listOf("", "not a url", "relative/path", "https://", "mailto:a@b.c", null, 42)) {
+        check(handleUrl(linkEngine, invalid) == listOf("INVALID_ARGUMENT")) { "accepted $invalid" }
+    }
+    check(Grovs.intents.isEmpty())
+    check(handleUrl(linkEngine, link) == listOf(true))
+    check(handleUrl(linkEngine, "grovstest://example.sqd.link/abc") == listOf(true))
+    val (intent, activity) = Grovs.intents.first()
+    check(intent.action == Intent.ACTION_VIEW && intent.data?.value == link && activity === linkEngine.activity.activity)
+    linkEngine.enabled(false)
+    check(handleUrl(linkEngine, link) == listOf(false))
+    linkEngine.enabled(true)
+    linkEngine.plugin.onDetachedFromActivity()
+    check(handleUrl(linkEngine, link) == listOf(false))
+    check(Grovs.intents.size == 2)
+    linkEngine.close()
+    println("PASS Android: handleUrl validates input and hands a view intent to the SDK only when enabled and attached")
     Grovs.generated = CompletableDeferred()
     Grovs.generationStarted = CompletableDeferred()
     val cancelled = Reply()

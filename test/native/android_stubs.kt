@@ -3,7 +3,17 @@ import java.io.Serializable
 
 typealias Result = MethodChannel.Result
 typealias MethodCallHandler = MethodChannel.MethodCallHandler
-class Intent
+class Uri private constructor(val value: String, val scheme: String?, val host: String?) {
+    companion object {
+        fun parse(value: String): Uri {
+            val parsed = runCatching { java.net.URI(value) }.getOrNull()
+            return Uri(value, parsed?.scheme, parsed?.host)
+        }
+    }
+}
+class Intent(val action: String? = null, val data: Uri? = null) {
+    companion object { const val ACTION_VIEW = "android.intent.action.VIEW" }
+}
 open class Activity { var intent: Intent? = null }
 interface LifecycleObserver
 fun interface LifecycleEventObserver : LifecycleObserver { fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) }
@@ -114,7 +124,8 @@ object Grovs {
     fun configure(application: Application, key: String, test: Boolean, url: String?, auto: Boolean, domains: List<String>?, enabled: Boolean) {}
     fun setSDK(enabled: Boolean) {}
     fun onStart(activity: Activity) { started.add(activity) }
-    fun onNewIntent(intent: Intent, activity: Activity) {}
+    val intents = mutableListOf<Pair<Intent, Activity>>()
+    fun onNewIntent(intent: Intent, activity: Activity) { intents.add(intent to activity) }
     fun setOnDeeplinkReceivedListener(activity: Activity, callback: (LinkDetails) -> Unit) { listener = callback }
     suspend fun generateLink(title: String, subtitle: String?, imageURL: String?, data: Map<String, Serializable>?, tags: List<String>?, customRedirects: CustomRedirects?, showPreviewIos: Boolean?, showPreviewAndroid: Boolean?, copyToClipboardIos: Boolean?, copyToClipboardAndroid: Boolean?, tracking: TrackingParams?): String {
         generationStarted.complete(Unit)
