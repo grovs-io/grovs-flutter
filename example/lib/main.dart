@@ -315,6 +315,25 @@ class _MyAppState extends State<MyApp> {
                           icon: const Icon(Icons.open_in_browser),
                           label: const Text('Open Link'),
                         ),
+                        const SizedBox(height: 8),
+                        Builder(
+                          builder: (context) => ElevatedButton.icon(
+                            onPressed: () async {
+                              final handled = await _grovs.handleUrl(
+                                _generatedLink,
+                              );
+                              if (!handled && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('SDK is disabled'),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.link),
+                            label: const Text('Open in App'),
+                          ),
+                        ),
                       ],
                     ],
                   ),

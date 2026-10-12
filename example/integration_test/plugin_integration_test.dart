@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:grovs_flutter_plugin/grovs.dart';
+import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -21,4 +22,33 @@ void main() {
     // just assert that some non-empty string is returned.
     expect(version?.isNotEmpty, true);
   });
+
+  for (final invalid in [
+    '',
+    'not a url',
+    'relative/path',
+    'https://',
+    'mailto:a@b.c',
+  ]) {
+    testWidgets('handleUrl rejects "$invalid"', (WidgetTester tester) async {
+      await expectLater(
+        Grovs().handleUrl(invalid),
+        throwsA(
+          isA<GrovsException>().having(
+            (e) => e.code,
+            'code',
+            'INVALID_ARGUMENT',
+          ),
+        ),
+      );
+    });
+  }
+
+  // Pass a real link with --dart-define=GROVS_TEST_LINK=<link>.
+  const link = String.fromEnvironment('GROVS_TEST_LINK');
+  testWidgets('handleUrl delivers a link', (WidgetTester tester) async {
+    final received = Grovs().onDeeplinkReceived.first;
+    expect(await Grovs().handleUrl(link), true);
+    await received.timeout(const Duration(seconds: 30));
+  }, skip: link.isEmpty);
 }
