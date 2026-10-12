@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'grovs_flutter_plugin'
-  s.version          = '3.0.0'
+  s.version          = '3.1.0'
   s.summary          = 'Flutter plugin for the Grovs SDK.'
   s.description      = <<-DESC
 Deep linking, smart links, analytics, user messaging, and campaign tracking for Flutter apps.
@@ -10,6 +10,7 @@ Deep linking, smart links, analytics, user messaging, and campaign tracking for 
   s.author           = { 'Grovs' => 'support@grovs.io' }
   s.source           = { :path => '.' }
   s.source_files = 'grovs_flutter_plugin/Sources/grovs_flutter_plugin/**/*.swift'
+  s.resource_bundles = { 'grovs_flutter_plugin_privacy' => ['grovs_flutter_plugin/Sources/grovs_flutter_plugin/Resources/PrivacyInfo.xcprivacy'] }
   s.dependency 'Flutter'
   s.dependency 'Grovs', '~> 3.0'
   s.platform = :ios, '13.0'
