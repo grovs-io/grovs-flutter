@@ -81,7 +81,7 @@ class Grovs {
   /// message) would open in a browser. Pass it here instead. The result
   /// arrives on [onDeeplinkReceived], like any other deep link.
   ///
-  /// [url] must be an absolute URL with a host, such as
+  /// [url] must be an absolute URL with a scheme and a host, such as
   /// `https://your_app_host/abc`.
   ///
   /// Returns true when the link was handed to the native SDK. Returns false,
@@ -89,7 +89,7 @@ class Grovs {
   /// Android, when no activity is attached.
   ///
   /// Throws [GrovsException] with code `INVALID_ARGUMENT` if [url] is not an
-  /// absolute URL with a host.
+  /// absolute URL with a scheme and a host.
   Future<bool> handleUrl(String url) {
     return GrovsPlatform.instance.handleUrl(url);
   }

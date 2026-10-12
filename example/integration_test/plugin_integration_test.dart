@@ -49,6 +49,7 @@ void main() {
   testWidgets('handleUrl delivers a link', (WidgetTester tester) async {
     final received = Grovs().onDeeplinkReceived.first;
     expect(await Grovs().handleUrl(link), true);
-    await received.timeout(const Duration(seconds: 30));
+    final details = await received.timeout(const Duration(seconds: 30));
+    expect(details.link, link);
   }, skip: link.isEmpty);
 }

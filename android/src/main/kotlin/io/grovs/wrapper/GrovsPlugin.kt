@@ -3,8 +3,8 @@ package io.grovs.wrapper
 import android.app.Activity
 import android.app.Application
 import android.content.Intent
-import android.net.Uri
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver

@@ -250,7 +250,7 @@ iOS and Android do not open your app for a link that your own app opens, so a Gr
 final handled = await grovs.handleUrl('https://your_app_host/abc');
 ```
 
-The URL must be absolute and have a host, otherwise a `GrovsException` with code `INVALID_ARGUMENT` is thrown. `handleUrl` returns `false` (and drops the link) when the SDK is disabled, and on Android when no activity is attached.
+The URL must be an absolute URL with a scheme and a host, otherwise a `GrovsException` with code `INVALID_ARGUMENT` is thrown. `handleUrl` returns `false` (and drops the link) when the SDK is disabled, and on Android when no activity is attached.
 
 ### Listen for SDK errors
 

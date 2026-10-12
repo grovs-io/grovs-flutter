@@ -145,6 +145,7 @@ fun main() = runBlocking {
     check(Grovs.intents.size == 2)
     linkEngine.close()
     println("PASS Android: handleUrl validates input and hands a view intent to the SDK only when enabled and attached")
+
     Grovs.generated = CompletableDeferred()
     Grovs.generationStarted = CompletableDeferred()
     val cancelled = Reply()
