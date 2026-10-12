@@ -45,7 +45,7 @@ The Grovs Flutter SDK provides deep linking, app links, universal links, link ge
 
 ## Requirements
 
-- Flutter 3.3.0+
+- Flutter 3.38.0+
 - Dart 3.9.2+
 - iOS 13.0+
 - Android API 24+ (Android 7.0)
@@ -56,7 +56,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^3.0.3
+  grovs_flutter_plugin: ^3.1.0
 ```
 
 Then run:
@@ -184,6 +184,10 @@ Add custom URL scheme support to `Info.plist`:
 3. Click **+ Capability** → add **Associated Domains**
 4. Add `applinks:your_app_host` and `applinks:your_app_test_host`
 
+**4. App lifecycle**
+
+Nothing to add. The plugin works with both the UIScene lifecycle (`FlutterSceneDelegate`, the default for new Flutter apps) and AppDelegate-only apps. If you wrote your own scene delegate code that calls `Grovs.handleSceneDelegate`, remove it, otherwise every link is delivered twice. If your scene delegate does not extend `FlutterSceneDelegate`, follow https://flutter.dev/to/uiscene-migration so Flutter can pass scene events to plugins.
+
 ## Quick Start
 
 ### Initialize and configure
@@ -237,6 +241,16 @@ void dispose() {
   super.dispose();
 }
 ```
+
+### Links tapped inside your app
+
+iOS and Android do not open your app for a link that your own app opens, so a Grovs link shown in your UI would open in a browser. Pass it to `handleUrl` instead. The result arrives on `onDeeplinkReceived`.
+
+```dart
+final handled = await grovs.handleUrl('https://your_app_host/abc');
+```
+
+The URL must be absolute and have a host, otherwise a `GrovsException` with code `INVALID_ARGUMENT` is thrown. `handleUrl` returns `false` (and drops the link) when the SDK is disabled, and on Android when no activity is attached.
 
 ### Listen for SDK errors
 
@@ -477,6 +491,7 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | Method | Description |
 |---|---|
 | `setDebugLevel(level)` | Set logging level (`'info'`, `'error'`) |
+| `handleUrl(url)` | Resolve a Grovs link tapped inside your app |
 | `setPushToken(token)` | Set FCM/APNs push token |
 | `setUserIdentifier(identifier)` | Set user ID for dashboard and reports |
 | `setUserAttributes(attributes)` | Set user attributes for analytics |

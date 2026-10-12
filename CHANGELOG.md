@@ -1,3 +1,17 @@
+## 3.1.0
+
+Requires Flutter 3.38.0 or later.
+
+Added:
+
+* iOS: Swift Package Manager support. CocoaPods still works.
+* `handleUrl(url)` resolves a Grovs link tapped inside your app. The system does not hand a universal link or app link back to the app that opened it, so these links used to open in a browser.
+
+Fixed:
+
+* iOS: apps using the UIScene lifecycle lost the link that launched the app from a closed state. This includes new Flutter apps and apps that Flutter 3.41 or later migrated automatically. The plugin now receives scene events itself. If you added your own SceneDelegate code that forwards links to Grovs, remove it, or links will be delivered twice.
+* iOS: the privacy manifest is now included in CocoaPods builds.
+
 ## 3.0.3
 
 Changed:
