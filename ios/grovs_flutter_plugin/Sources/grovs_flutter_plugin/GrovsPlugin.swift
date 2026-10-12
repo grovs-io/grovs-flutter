@@ -2,37 +2,8 @@ import Flutter
 import UIKit
 import Grovs
 
-extension Array where Element == Any {
-    func toArray<T>(of type: T.Type) -> [T] {
-        return self.compactMap { $0 as? T }
-    }
-}
-
-extension Array where Element == Any {
-    static func convertClosure<T>(
-        _ closure: @escaping ([Any]) -> Void,
-        to type: T.Type
-    ) -> ([T]) -> Void {
-        return { typedArray in
-            let anyArray = typedArray.map { $0 as Any }
-            closure(anyArray)
-        }
-    }
-    
-    /// Wraps a `([Any]) -> Void` closure as a `([T]?) -> Void` closure.
-    static func convertClosure<T>(
-        _ closure: @escaping ([Any]) -> Void,
-        toOptionalArrayOf type: T.Type
-    ) -> ([T]?) -> Void {
-        return { typedArray in
-            let anyArray: [Any] = typedArray?.map { $0 } ?? []
-            closure(anyArray)
-        }
-    }
-}
-
 public class GrovsPlugin: NSObject, FlutterPlugin {
-    private enum PendingLaunchLink {
+    enum IncomingLink {
         case userActivity(NSUserActivity)
         case url(URL)
     }
@@ -45,11 +16,12 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
     private let errorStream = BufferedStreamHandler(stream: GrovsPlugin.events.errors)
     private let deeplinkStream = BufferedStreamHandler(stream: GrovsPlugin.events.deeplinks)
 
-    // Consent state and the launch link received while disabled are shared by
-    // every engine because the SDK is configured once per process.
+    // Configuration, consent state and the launch link received while disabled are
+    // shared by every engine because the SDK is configured once per process.
+    private static var configured = false
     private static var sdkEnabled = true
-    private static var pendingLaunchLink: PendingLaunchLink?
-    
+    private static var pendingLaunchLink: IncomingLink?
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "grovs", binaryMessenger: registrar.messenger())
         let eventChannel = FlutterEventChannel(name: "grovs/deeplinks", binaryMessenger: registrar.messenger())
@@ -81,42 +53,45 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
     // Hook into didFinishLaunchingWithOptions
     public func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [AnyHashable : Any] = [:]) -> Bool {
-        // Read API key and test environment flag from Info.plist
-        if let infoDictionary = Bundle.main.infoDictionary, let apiKey = infoDictionary["GrovsApiKey"] as? String {
-            let useTestEnvironment = infoDictionary["GrovsUseTestEnvironment"] as? Bool ?? false
-            let baseURL = infoDictionary["GrovsBaseURL"] as? String
-            let clipboardDomains = infoDictionary["GrovsClipboardDomains"] as? [String]
-            let enabled = infoDictionary["GrovsEnabled"] as? Bool ?? true
-            GrovsPlugin.sdkEnabled = enabled
-            GrovsPlugin.events.deeplinks.enabled = enabled
-            Grovs.configure(
-                APIKey: apiKey,
-                useTestEnvironment: useTestEnvironment,
-                baseURL: baseURL,
-                autoTrackScreenViews: false,
-                clipboardDomains: clipboardDomains,
-                enabled: enabled,
-                delegate: GrovsPlugin.events
-            )
-        }
-        
+        GrovsPlugin.configureFromInfoPlist()
         return true
     }
-    
-    // Handle universal link continuation
+
     public func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([Any]) -> Void) -> Bool {
-        if !GrovsPlugin.sdkEnabled {
-            GrovsPlugin.pendingLaunchLink = .userActivity(userActivity)
-        }
-        return Grovs.handleAppDelegate(continue: userActivity, restorationHandler: Array.convertClosure(restorationHandler, toOptionalArrayOf: UIUserActivityRestoring.self))
+        GrovsPlugin.deliver(.userActivity(userActivity))
     }
 
-    // Handle URI opening
     public func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        if !GrovsPlugin.sdkEnabled {
-            GrovsPlugin.pendingLaunchLink = .url(url)
+        GrovsPlugin.deliver(.url(url))
+    }
+
+    static func configureFromInfoPlist(_ info: [String: Any]? = Bundle.main.infoDictionary) {
+        guard !configured, let info, let apiKey = info["GrovsApiKey"] as? String else { return }
+        configured = true
+        let enabled = info["GrovsEnabled"] as? Bool ?? true
+        sdkEnabled = enabled
+        events.deeplinks.enabled = enabled
+        Grovs.configure(
+            APIKey: apiKey,
+            useTestEnvironment: info["GrovsUseTestEnvironment"] as? Bool ?? false,
+            baseURL: info["GrovsBaseURL"] as? String,
+            autoTrackScreenViews: false,
+            clipboardDomains: info["GrovsClipboardDomains"] as? [String],
+            enabled: enabled,
+            delegate: events
+        )
+    }
+
+    static func deliver(_ link: IncomingLink) -> Bool {
+        if !sdkEnabled {
+            pendingLaunchLink = link
         }
-        return Grovs.handleAppDelegate(open: url, options: options)
+        switch link {
+        case .userActivity(let activity):
+            return Grovs.handleAppDelegate(continue: activity, restorationHandler: { _ in })
+        case .url(let url):
+            return Grovs.handleAppDelegate(open: url, options: [:])
+        }
     }
 
     private func setSDKEnabled(_ enabled: Bool) {
@@ -129,12 +104,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         GrovsPlugin.pendingLaunchLink = nil
         // The native SDK drops links received while disabled; hand it the launch
         // link again now that it may process it. Must run on the main thread.
-        switch pending {
-        case .userActivity(let activity):
-            _ = Grovs.handleAppDelegate(continue: activity, restorationHandler: { _ in })
-        case .url(let url):
-            _ = Grovs.handleAppDelegate(open: url, options: [:])
-        }
+        _ = GrovsPlugin.deliver(pending)
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

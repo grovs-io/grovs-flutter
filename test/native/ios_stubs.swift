@@ -33,9 +33,29 @@ class FlutterPluginRegistrar {
     func addMethodCallDelegate(_ instance: GrovsPlugin, channel: FlutterMethodChannel) {}
     func addApplicationDelegate(_ instance: GrovsPlugin) {}
 }
+class UIApplication {}
+var testInfoDictionary: [String: Any]? = nil
 class Grovs {
     static weak var delegate: GrovsDelegate?
-    static func setSDK(enabled: Bool) {}
-    static func handleAppDelegate(continue activity: NSUserActivity, restorationHandler: ([Any]) -> Void) -> Bool { true }
-    static func handleAppDelegate(open url: URL, options: [String: Any]) -> Bool { true }
+    static var log: [String] = []
+    static func configure(APIKey: String, useTestEnvironment: Bool, baseURL: String?, autoTrackScreenViews: Bool, clipboardDomains: [String]?, enabled: Bool, delegate: GrovsDelegate?) {
+        log.append("configure enabled=\(enabled)")
+    }
+    static func setSDK(enabled: Bool) { log.append("setSDK \(enabled)") }
+    static func handleAppDelegate(continue activity: NSUserActivity, restorationHandler: ([Any]) -> Void) -> Bool {
+        log.append("link \(activity.webpageURL!.absoluteString)")
+        return true
+    }
+    static func handleAppDelegate(open url: URL, options: [String: Any]) -> Bool {
+        log.append("link \(url.absoluteString)")
+        return true
+    }
+}
+func links() -> [String] {
+    Grovs.log.filter { $0.hasPrefix("link ") }.map { String($0.dropFirst("link ".count)) }
+}
+func webActivity(_ link: String) -> NSUserActivity {
+    let activity = NSUserActivity(activityType: NSUserActivityTypeBrowsingWeb)
+    activity.webpageURL = URL(string: link)!
+    return activity
 }

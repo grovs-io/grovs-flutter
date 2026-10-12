@@ -27,17 +27,35 @@ def function(source, marker):
     return source[start:end]
 
 
+IOS_TEST_PROGRAMS = ["ios_tests.swift"]
+
+
 def swift(out):
     relay = (IOS / "GrovsEventRelay.swift").read_text()
     plugin = (IOS / "GrovsPlugin.swift").read_text()
-    # Include the real registration, engine cleanup, and consent methods.
+    # Include the real registration, engine cleanup, lifecycle, configuration, link delivery and consent methods.
     bridge = plugin[:plugin.index("    // Hook into didFinishLaunchingWithOptions")]
-    bridge += function(plugin, "    private func setSDKEnabled") + "\n}\n"
+    for marker in (
+        "    public func application(_ application: UIApplication, didFinishLaunchingWithOptions",
+        "    public func application(_ application: UIApplication, continue",
+        "    public func application(_ app: UIApplication, open",
+        "    static func configureFromInfoPlist",
+        "    static func deliver",
+        "    private func setSDKEnabled",
+    ):
+        bridge += function(plugin, marker) + "\n"
+    bridge += "}\n"
     bridge = bridge.replace("public ", "").replace("private func setSDKEnabled", "func setSDKEnabled")
-    source = (HERE / "ios_stubs.swift").read_text() + relay + bridge + (HERE / "ios_tests.swift").read_text()
-    source = re.sub(r"^import (Flutter|Grovs|UIKit)\n", "", source, flags=re.M)
-    (out / "main.swift").write_text(source)
-    run("xcrun", "swift", "-swift-version", "5", "-module-cache-path", out / "cache", out / "main.swift")
+    bridge = bridge.replace("[UIApplication.OpenURLOptionsKey : Any]", "[String: Any]")
+    bridge = bridge.replace("Bundle.main.infoDictionary", "testInfoDictionary")
+    # Each test file is its own program, so static plugin state starts fresh in each.
+    for tests in IOS_TEST_PROGRAMS:
+        source = (HERE / "ios_stubs.swift").read_text() + relay + bridge + (HERE / tests).read_text()
+        source = re.sub(r"^import (Flutter|Grovs|UIKit)\n", "", source, flags=re.M)
+        program = out / Path(tests).stem
+        program.mkdir()
+        (program / "main.swift").write_text(source)
+        run("xcrun", "swift", "-swift-version", "5", "-module-cache-path", out / "cache", program / "main.swift")
 
 
 def jar(artifact, version):

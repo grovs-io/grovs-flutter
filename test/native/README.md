@@ -10,7 +10,8 @@ Use `ios` or `android` as the final argument to run one platform.
 
 These checks run offline using platform stubs. Android compiles the complete
 production plugin and uses a test main dispatcher. iOS compiles the production
-event relay plus the plugin's registration, detach, and consent methods. The
+event relay plus the plugin's registration, lifecycle, link delivery, detach, and consent methods.
+Each iOS test file runs as its own program so static state starts fresh. The
 runner replaces platform imports and exposes the private iOS consent method to
 the tests. It leaves their behavior unchanged. Generated files go into a temporary
 directory and are removed after the run.

@@ -18,15 +18,15 @@ func error(_ message: String) {
 let first = engine()
 let delegate = Grovs.delegate!
 for id in 0..<25 { emit(String(id)) }
-var links: [[String: Any]] = []
-_ = stream(first).onListen(withArguments: nil) { links.append($0 as! [String: Any]) }
-precondition(links.map { $0["link"] as! String } == (5..<25).map(String.init))
-precondition((links.last!["data"] as! [String: String])["id"] == "24")
-precondition((links.last!["tracking"] as! [String: String])["source"] == "test")
+var received: [[String: Any]] = []
+_ = stream(first).onListen(withArguments: nil) { received.append($0 as! [String: Any]) }
+precondition(received.map { $0["link"] as! String } == (5..<25).map(String.init))
+precondition((received.last!["data"] as! [String: String])["id"] == "24")
+precondition((received.last!["tracking"] as! [String: String])["source"] == "test")
 _ = stream(first).onCancel(withArguments: nil)
 emit("cancelled")
-_ = stream(first).onListen(withArguments: nil) { links.append($0 as! [String: Any]) }
-precondition(links.count == 21)
+_ = stream(first).onListen(withArguments: nil) { received.append($0 as! [String: Any]) }
+precondition(received.count == 21)
 _ = stream(first).onCancel(withArguments: nil)
 _ = stream(first).onListen(withArguments: nil) { _ in preconditionFailure("Duplicate replay") }
 print("PASS iOS: bounded FIFO buffer, payload preservation, cancel/resubscribe")
@@ -102,3 +102,26 @@ _ = handler.onListen(withArguments: nil) { _ in
 }
 precondition(flushed == 1)
 print("PASS iOS: stream owners are weak and consent changes stop an in-progress flush")
+
+GrovsPlugin.configureFromInfoPlist(nil)
+GrovsPlugin.configureFromInfoPlist(["GrovsUseTestEnvironment": true])
+precondition(!Grovs.log.contains { $0.hasPrefix("configure") })
+GrovsPlugin.configureFromInfoPlist(["GrovsApiKey": "key"])
+GrovsPlugin.configureFromInfoPlist(["GrovsApiKey": "key", "GrovsEnabled": false])
+precondition(Grovs.log.filter { $0.hasPrefix("configure") } == ["configure enabled=true"])
+print("PASS iOS: the SDK is configured once, and only when an API key is present")
+
+let linkEngine = engine()
+let linkPlugin = linkEngine.instance!
+Grovs.log.removeAll()
+precondition(linkPlugin.application(UIApplication(), continue: webActivity("https://app.sqd.link/a"), restorationHandler: { _ in }))
+precondition(linkPlugin.application(UIApplication(), open: URL(string: "grovstest://b")!, options: [:]))
+precondition(links() == ["https://app.sqd.link/a", "grovstest://b"])
+linkPlugin.setSDKEnabled(false)
+_ = GrovsPlugin.deliver(.userActivity(webActivity("https://app.sqd.link/launch")))
+linkPlugin.setSDKEnabled(true)
+precondition(links().suffix(2) == ["https://app.sqd.link/launch", "https://app.sqd.link/launch"])
+linkPlugin.setSDKEnabled(false); linkPlugin.setSDKEnabled(true)
+precondition(links().count == 4)
+linkPlugin.detachFromEngine(for: linkEngine)
+print("PASS iOS: app delegate links reach the SDK, and a link received while disabled is replayed once")
