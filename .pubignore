@@ -82,3 +82,6 @@ coverage/
 .buildlog/
 .history
 .svn/
+
+# Swift Package Manager resolution of the plugin package
+/ios/grovs_flutter_plugin/Package.resolved

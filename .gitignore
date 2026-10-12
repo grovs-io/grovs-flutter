@@ -32,3 +32,6 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Swift Package Manager resolution of the plugin package
+/ios/grovs_flutter_plugin/Package.resolved
