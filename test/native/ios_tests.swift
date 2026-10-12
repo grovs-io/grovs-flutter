@@ -147,6 +147,27 @@ precondition(links() == [universal, scheme, "https://app.sqd.link/warm", "grovst
 scenePlugin.detachFromEngine(for: sceneEngine)
 print("PASS iOS: scene launch, URL and user activity events each reach the SDK once")
 
+let sharedEngineA = engine()
+let sharedEngineB = engine()
+let sharedA = sharedEngineA.instance!
+let sharedB = sharedEngineB.instance!
+Grovs.log.removeAll()
+let sharedContext = UIOpenURLContext(url: URL(string: "grovstest://shared")!)
+precondition(sharedA.scene(UIScene(), openURLContexts: [sharedContext]))
+precondition(sharedB.scene(UIScene(), openURLContexts: [sharedContext]))
+precondition(links() == ["grovstest://shared"])
+precondition(sharedB.scene(UIScene(), openURLContexts: [UIOpenURLContext(url: URL(string: "grovstest://shared")!)]))
+precondition(links() == ["grovstest://shared", "grovstest://shared"])
+let sharedActivity = webActivity("https://app.sqd.link/shared")
+precondition(sharedA.scene(UIScene(), continue: sharedActivity))
+precondition(sharedB.scene(UIScene(), continue: sharedActivity))
+precondition(links().count == 3)
+precondition(sharedB.scene(UIScene(), continue: webActivity("https://app.sqd.link/shared")))
+precondition(links().count == 4)
+sharedA.detachFromEngine(for: sharedEngineA)
+sharedB.detachFromEngine(for: sharedEngineB)
+print("PASS iOS: a scene event seen by several engines reaches the SDK once")
+
 func handleUrl(_ url: Any?) -> Any { GrovsPlugin.handleUrl(arguments: ["url": url as Any]) }
 func isInvalid(_ value: Any) -> Bool { (value as? FlutterError)?.code == "INVALID_ARGUMENT" }
 
