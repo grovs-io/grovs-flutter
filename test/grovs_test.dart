@@ -72,6 +72,20 @@ class MockGrovsPlatform
   @override
   Stream<InAppMessageEvent> get onInAppMessage => inAppEvents;
 
+  final pushCalls = <String>[];
+
+  @override
+  Future<bool> isGrovsNotification(Map<String, dynamic> data) async {
+    pushCalls.add('is:${data['k']}');
+    return true;
+  }
+
+  @override
+  Future<bool> handleNotificationOpen(Map<String, dynamic> data) async {
+    pushCalls.add('open:${data['k']}');
+    return false;
+  }
+
   @override
   Future<void> setPushToken(String token) => Future.value();
 
@@ -203,6 +217,15 @@ void main() {
       'debug:true',
     ]);
     expect(Grovs().onInAppMessage, same(fakePlatform.inAppEvents));
+  });
+
+  test('push helpers forward to the platform and return its result', () async {
+    final fakePlatform = MockGrovsPlatform();
+    GrovsPlatform.instance = fakePlatform;
+
+    expect(await Grovs().isGrovsNotification({'k': 'a'}), isTrue);
+    expect(await Grovs().handleNotificationOpen({'k': 'b'}), isFalse);
+    expect(fakePlatform.pushCalls, ['is:a', 'open:b']);
   });
 
   test('setScreenAliases populates the static alias store', () async {

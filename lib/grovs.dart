@@ -320,6 +320,32 @@ class Grovs {
     return GrovsPlatform.instance.setScreenAliases(aliases);
   }
 
+  /// Whether a push payload was sent by Grovs.
+  ///
+  /// [data] is the data of a received push message, for example
+  /// `RemoteMessage.data` from firebase_messaging.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<bool> isGrovsNotification(Map<String, dynamic> data) {
+    return GrovsPlatform.instance.isGrovsNotification(data);
+  }
+
+  /// Record a tap on a Grovs push notification, so the tap is counted and
+  /// the notification's link is opened.
+  ///
+  /// Call this only from a tap handler, and only when the native path is not
+  /// wired. Never call it when a notification is delivered. On iOS, wiring
+  /// both the native path and this call counts a tap twice.
+  ///
+  /// Returns true when [data] belongs to Grovs and the tap was handled.
+  /// Returns false when it does not, or while the SDK is disabled with
+  /// [setSDK].
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<bool> handleNotificationOpen(Map<String, dynamic> data) {
+    return GrovsPlatform.instance.handleNotificationOpen(data);
+  }
+
   /// Hold back in-app messages until [resumeInAppMessages] is called.
   ///
   /// Throws [GrovsException] if the operation fails.

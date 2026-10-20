@@ -230,6 +230,38 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<bool> isGrovsNotification(Map<String, dynamic> data) async {
+    try {
+      final result = await methodChannel.invokeMethod<bool>(
+        'isGrovsNotification',
+        {'data': data},
+      );
+      return result ?? false;
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to check notification',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<bool> handleNotificationOpen(Map<String, dynamic> data) async {
+    try {
+      final result = await methodChannel.invokeMethod<bool>(
+        'handleNotificationOpen',
+        {'data': data},
+      );
+      return result ?? false;
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to handle notification open',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Future<void> pauseInAppMessages() async {
     try {
       await methodChannel.invokeMethod('pauseInAppMessages');

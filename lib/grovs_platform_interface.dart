@@ -107,6 +107,18 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('setScreenAliases() has not been implemented.');
   }
 
+  /// Whether a push payload was sent by Grovs
+  Future<bool> isGrovsNotification(Map<String, dynamic> data) {
+    throw UnimplementedError('isGrovsNotification() has not been implemented.');
+  }
+
+  /// Record a tap on a Grovs push notification
+  Future<bool> handleNotificationOpen(Map<String, dynamic> data) {
+    throw UnimplementedError(
+      'handleNotificationOpen() has not been implemented.',
+    );
+  }
+
   /// Hold back in-app messages until [resumeInAppMessages] is called
   Future<void> pauseInAppMessages() {
     throw UnimplementedError('pauseInAppMessages() has not been implemented.');

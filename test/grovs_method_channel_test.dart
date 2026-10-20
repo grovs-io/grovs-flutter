@@ -408,4 +408,49 @@ void main() {
       expect(events, [isA<InAppMessageShown>(), isA<InAppMessageFailed>()]);
     },
   );
+
+  for (final method in ['isGrovsNotification', 'handleNotificationOpen']) {
+    final call = method == 'isGrovsNotification'
+        ? platform.isGrovsNotification
+        : platform.handleNotificationOpen;
+    final data = {'grovs': 'yes', 'n': 1};
+
+    for (final entry in <bool?, bool>{
+      true: true,
+      false: false,
+      null: false,
+    }.entries) {
+      test(
+        '$method sends data and maps ${entry.key} to ${entry.value}',
+        () async {
+          MethodCall? captured;
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, (invocation) async {
+                captured = invocation;
+                return entry.key;
+              });
+
+          expect(await call(data), entry.value);
+          expect(captured?.method, method);
+          expect(captured?.arguments, {'data': data});
+        },
+      );
+    }
+
+    test('$method wraps platform errors', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (invocation) async {
+            throw PlatformException(code: 'PUSH_ERROR', message: 'boom');
+          });
+
+      await expectLater(
+        call(data),
+        throwsA(
+          isA<GrovsException>()
+              .having((error) => error.code, 'code', 'PUSH_ERROR')
+              .having((error) => error.message, 'message', 'boom'),
+        ),
+      );
+    });
+  }
 }
