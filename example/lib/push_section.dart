@@ -43,6 +43,12 @@ class _PushSectionState extends State<PushSection> {
     }
 
     final messaging = FirebaseMessaging.instance;
+    // firebase_messaging 16.x answers every iOS notification, which hides Grovs pushes in the foreground.
+    await messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     final settings = await messaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.denied) {
       _setStatus('Push permission denied');
