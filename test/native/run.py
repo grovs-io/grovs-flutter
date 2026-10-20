@@ -27,14 +27,15 @@ def function(source, marker):
     return source[start:end]
 
 
-IOS_TEST_PROGRAMS = ["ios_tests.swift", "ios_launch_tests.swift"]
+IOS_TEST_PROGRAMS = ["ios_tests.swift", "ios_launch_tests.swift", "ios_push_tests.swift"]
 
 
 def swift(out):
     relay = (IOS / "GrovsEventRelay.swift").read_text()
     plugin = (IOS / "GrovsPlugin.swift").read_text()
     scene = (IOS / "GrovsPlugin+Scene.swift").read_text()
-    # Include the real registration, engine cleanup, lifecycle, configuration, link delivery and consent methods.
+    push = (IOS / "GrovsPlugin+Push.swift").read_text()
+    # Include the real registration, engine cleanup, lifecycle, configuration, link delivery, push and consent methods.
     bridge = plugin[:plugin.index("    // Hook into didFinishLaunchingWithOptions")]
     for marker in (
         "    public func application(_ application: UIApplication, didFinishLaunchingWithOptions",
@@ -43,17 +44,19 @@ def swift(out):
         "    static func configureFromInfoPlist",
         "    static func deliver",
         "    static func handleUrl(arguments",
+        "    static func isGrovsNotification(arguments",
+        "    static func handleNotificationOpen(arguments",
         "    private func setSDKEnabled",
     ):
         bridge += function(plugin, marker) + "\n"
-    bridge += "}\n" + scene
+    bridge += "}\n" + scene + push
     bridge = bridge.replace("public ", "").replace("private func setSDKEnabled", "func setSDKEnabled")
     bridge = bridge.replace("[UIApplication.OpenURLOptionsKey : Any]", "[String: Any]")
     bridge = bridge.replace("Bundle.main.infoDictionary", "testInfoDictionary")
     # Each test file is its own program, so static plugin state starts fresh in each.
     for tests in IOS_TEST_PROGRAMS:
         source = (HERE / "ios_stubs.swift").read_text() + relay + bridge + (HERE / tests).read_text()
-        source = re.sub(r"^import (Flutter|Grovs|UIKit)\n", "", source, flags=re.M)
+        source = re.sub(r"^import (Flutter|Grovs|UIKit|UserNotifications)\n", "", source, flags=re.M)
         program = out / Path(tests).stem
         program.mkdir()
         (program / "main.swift").write_text(source)

@@ -66,6 +66,23 @@ class Grovs {
         log.append("link \(url.absoluteString)")
         return true
     }
+    static func setPushToken(deviceToken: Data) {
+        log.append("setPushToken \(deviceToken.map { String(format: "%02x", $0) }.joined())")
+    }
+    static func isGrovsNotification(userInfo: [AnyHashable: Any]) -> Bool {
+        log.append("isGrovsNotification")
+        return (userInfo["grovs_campaign_id"] as? String)?.isEmpty == false
+    }
+    @discardableResult
+    static func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
+        log.append("handleNotificationResponse \(response.actionIdentifier)")
+        return (response.notification.request.content.userInfo["grovs_campaign_id"] as? String)?.isEmpty == false
+    }
+    @discardableResult
+    static func handleNotificationOpen(userInfo: [AnyHashable: Any]) -> Bool {
+        log.append("handleNotificationOpen")
+        return (userInfo["grovs_campaign_id"] as? String)?.isEmpty == false
+    }
 }
 func links() -> [String] {
     Grovs.log.filter { $0.hasPrefix("link ") }.map { String($0.dropFirst("link ".count)) }
@@ -91,4 +108,34 @@ class UIScene {
             self.urlContexts = urlContexts
         }
     }
+}
+
+let UNNotificationDefaultActionIdentifier = "com.apple.UNNotificationDefaultActionIdentifier"
+class UNUserNotificationCenter {}
+class UNNotificationContent {
+    let userInfo: [AnyHashable: Any]
+    init(userInfo: [AnyHashable: Any]) { self.userInfo = userInfo }
+}
+class UNNotificationRequest {
+    let content: UNNotificationContent
+    init(content: UNNotificationContent) { self.content = content }
+}
+class UNNotification {
+    let request: UNNotificationRequest
+    init(userInfo: [AnyHashable: Any]) { request = UNNotificationRequest(content: UNNotificationContent(userInfo: userInfo)) }
+}
+class UNNotificationResponse {
+    let notification: UNNotification
+    let actionIdentifier: String
+    init(userInfo: [AnyHashable: Any], actionIdentifier: String = UNNotificationDefaultActionIdentifier) {
+        notification = UNNotification(userInfo: userInfo)
+        self.actionIdentifier = actionIdentifier
+    }
+}
+struct UNNotificationPresentationOptions: OptionSet {
+    let rawValue: Int
+    static let alert = UNNotificationPresentationOptions(rawValue: 1 << 0)
+    static let sound = UNNotificationPresentationOptions(rawValue: 1 << 1)
+    static let list = UNNotificationPresentationOptions(rawValue: 1 << 2)
+    static let banner = UNNotificationPresentationOptions(rawValue: 1 << 3)
 }

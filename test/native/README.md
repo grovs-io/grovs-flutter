@@ -10,7 +10,7 @@ Use `ios` or `android` as the final argument to run one platform.
 
 These checks run offline using platform stubs. Android compiles the complete
 production plugin and uses a test main dispatcher. iOS compiles the production
-event relay plus the plugin's registration, lifecycle, link delivery, detach, and consent methods.
+event relay plus the plugin's registration, lifecycle, link delivery, push, detach, and consent methods.
 Each iOS test file runs as its own program so static state starts fresh. The
 runner replaces platform imports and exposes the private iOS consent method to
 the tests. It leaves their behavior unchanged. Generated files go into a temporary
@@ -19,7 +19,8 @@ directory and are removed after the run.
 Coverage includes buffer limits and ordering, consent withdrawal across engines,
 queued callback rejection, engine replacement, error-only subscriptions, weak
 ownership, late cancellation, activity rotation, starting the SDK from the host
-lifecycle before and after onStart, and cancellation and reuse of link generation.
+lifecycle before and after onStart, cancellation and reuse of link generation,
+and push token, tap and foreground handling.
 
 These tests do not verify SDK API compatibility or device behavior. Run native
 builds and device checks separately when the required SDK releases are available.

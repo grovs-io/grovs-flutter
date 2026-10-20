@@ -21,7 +21,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
     // Configuration, consent state and the launch link received while disabled are
     // shared by every engine because the SDK is configured once per process.
     private static var configured = false
-    private static var sdkEnabled = true
+    static var sdkEnabled = true
     private static var pendingLaunchLink: IncomingLink?
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -118,6 +118,17 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         }
         guard sdkEnabled else { return false }
         return deliver(.url(url))
+    }
+
+    static func isGrovsNotification(arguments: Any?) -> Any {
+        guard let userInfo = notificationData(arguments) else { return missingNotificationData }
+        return Grovs.isGrovsNotification(userInfo: userInfo)
+    }
+
+    static func handleNotificationOpen(arguments: Any?) -> Any {
+        guard let userInfo = notificationData(arguments) else { return missingNotificationData }
+        guard sdkEnabled else { return false }
+        return Grovs.handleNotificationOpen(userInfo: userInfo)
     }
 
     private func setSDKEnabled(_ enabled: Bool) {
@@ -369,6 +380,12 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
         case "handleUrl":
             result(GrovsPlugin.handleUrl(arguments: call.arguments))
+
+        case "isGrovsNotification":
+            result(GrovsPlugin.isGrovsNotification(arguments: call.arguments))
+
+        case "handleNotificationOpen":
+            result(GrovsPlugin.handleNotificationOpen(arguments: call.arguments))
 
         case "pauseInAppMessages":
             Grovs.pauseInAppMessages()
