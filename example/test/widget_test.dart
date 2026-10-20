@@ -13,7 +13,7 @@ void main() {
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   const methodChannel = MethodChannel('grovs');
-  const streamChannels = ['grovs/deeplinks', 'grovs/errors'];
+  const streamChannels = ['grovs/deeplinks', 'grovs/errors', 'grovs/inapp'];
   late GrovsPlatform originalPlatform;
   late List<MethodCall> methodCalls;
   late Map<String, List<String>> streamCalls;
@@ -58,13 +58,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  final consentTile = find.widgetWithText(SwitchListTile, 'SDK enabled');
+
   SwitchListTile consentSwitch(WidgetTester tester) =>
-      tester.widget<SwitchListTile>(find.byType(SwitchListTile));
+      tester.widget<SwitchListTile>(consentTile);
 
   Future<void> tapConsent(WidgetTester tester) async {
-    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.ensureVisible(consentTile);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch));
+    await tester.tap(
+      find.descendant(of: consentTile, matching: find.byType(Switch)),
+    );
     await tester.pump();
   }
 
@@ -76,6 +80,7 @@ void main() {
     expect(find.text('Running on: Test OS 1.0'), findsOneWidget);
     expect(consentSwitch(tester).value, isTrue);
     expect(streamCalls['grovs/deeplinks'], ['listen']);
+    expect(streamCalls['grovs/inapp'], ['listen']);
     expect(streamCalls['grovs/errors'], ['listen']);
     expect(tester.takeException(), isNull);
   });
@@ -159,6 +164,52 @@ void main() {
       expect(find.text('network_request_failed: $message'), findsOneWidget);
     }
     expect(find.text('network_request_failed: First failure'), findsNothing);
+  });
+
+  testWidgets('shows that push is not configured without Firebase files', (
+    tester,
+  ) async {
+    const firebaseCoreChannel =
+        'dev.flutter.pigeon.firebase_core_platform_interface.FirebaseCoreHostApi.initializeCore';
+    messenger.setMockMessageHandler(
+      firebaseCoreChannel,
+      (_) async => const StandardMessageCodec().encodeMessage([
+        'channel-error',
+        'Firebase is not configured',
+        null,
+      ]),
+    );
+    addTearDown(
+      () => messenger.setMockMessageHandler(firebaseCoreChannel, null),
+    );
+    await pumpApp(tester);
+
+    expect(find.text('Push not configured'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('logs in-app message events and pauses messages', (tester) async {
+    await pumpApp(tester);
+
+    await messenger.handlePlatformMessage(
+      'grovs/inapp',
+      const StandardMethodCodec().encodeSuccessEnvelope({
+        'type': 'shown',
+        'campaignId': 'c1',
+      }),
+      (_) {},
+    );
+    await tester.pump();
+    expect(find.text('shown c1'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Pause'));
+    await tester.tap(find.text('Pause'));
+    await tester.pumpAndSettle();
+    expect(
+      methodCalls.map((call) => call.method),
+      contains('pauseInAppMessages'),
+    );
+    expect(find.text('paused'), findsOneWidget);
   });
 
   testWidgets(

@@ -33,5 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Firebase config for the example app
+/example/android/app/google-services.json
+/example/ios/Runner/GoogleService-Info.plist
+
 # Swift Package Manager resolution of the plugin package
 /ios/grovs_flutter_plugin/Package.resolved

@@ -6,6 +6,9 @@ import 'package:grovs_flutter_plugin/grovs.dart';
 import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'in_app_section.dart';
+import 'push_section.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -454,6 +457,10 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              const InAppSection(),
+              const SizedBox(height: 16),
+              const PushSection(),
               const SizedBox(height: 16),
               Card(
                 child: Padding(
