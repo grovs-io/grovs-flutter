@@ -7,15 +7,17 @@ void main() {
       InAppMessageEvent.fromMap({'type': 'shown', 'campaignId': 'c1'}),
       isA<InAppMessageShown>().having((e) => e.campaignId, 'id', 'c1'),
     );
-    final clicked = InAppMessageEvent.fromMap({
-      'type': 'clicked',
-      'campaignId': 'c1',
-      'buttonId': 'b1',
-      'payload': {
-        'k': 1,
-        'n': {'x': true},
-      },
-    }) as InAppMessageClicked;
+    final clicked =
+        InAppMessageEvent.fromMap({
+              'type': 'clicked',
+              'campaignId': 'c1',
+              'buttonId': 'b1',
+              'payload': {
+                'k': 1,
+                'n': {'x': true},
+              },
+            })
+            as InAppMessageClicked;
     expect(clicked.buttonId, 'b1');
     expect(clicked.payload, {
       'k': 1,
@@ -23,34 +25,37 @@ void main() {
     });
     expect(
       (InAppMessageEvent.fromMap({
-        'type': 'dismissed',
-        'campaignId': 'c1',
-        'reason': 'close_button',
-      }) as InAppMessageDismissed)
+                'type': 'dismissed',
+                'campaignId': 'c1',
+                'reason': 'close_button',
+              })
+              as InAppMessageDismissed)
           .reason,
       InAppDismissReason.closeButton,
     );
-    final stars = InAppMessageEvent.fromMap({
-      'type': 'answered',
-      'campaignId': 'c1',
-      'value': 4,
-      'comment': 'ok',
-    }) as InAppMessageAnswered;
+    final stars =
+        InAppMessageEvent.fromMap({
+              'type': 'answered',
+              'campaignId': 'c1',
+              'value': 4,
+              'comment': 'ok',
+            })
+            as InAppMessageAnswered;
     expect(stars.value, 4);
     expect(stars.comment, 'ok');
     expect(
       (InAppMessageEvent.fromMap({
-        'type': 'answered',
-        'campaignId': 'c1',
-        'value': 'opt_a',
-      }) as InAppMessageAnswered)
+                'type': 'answered',
+                'campaignId': 'c1',
+                'value': 'opt_a',
+              })
+              as InAppMessageAnswered)
           .value,
       'opt_a',
     );
-    final failed = InAppMessageEvent.fromMap({
-      'type': 'failed',
-      'message': 'no window',
-    }) as InAppMessageFailed;
+    final failed =
+        InAppMessageEvent.fromMap({'type': 'failed', 'message': 'no window'})
+            as InAppMessageFailed;
     expect(failed.campaignId, isNull);
     expect(failed.message, 'no window');
   });
@@ -80,21 +85,25 @@ void main() {
       'orientation': InAppDismissReason.orientation,
     };
     reasons.forEach((wire, expected) {
-      final event = InAppMessageEvent.fromMap({
-        'type': 'dismissed',
-        'campaignId': 'c1',
-        'reason': wire,
-      }) as InAppMessageDismissed;
+      final event =
+          InAppMessageEvent.fromMap({
+                'type': 'dismissed',
+                'campaignId': 'c1',
+                'reason': wire,
+              })
+              as InAppMessageDismissed;
       expect(event.reason, expected);
     });
   });
 
   test('unknown reason maps to unknown', () {
-    final event = InAppMessageEvent.fromMap({
-      'type': 'dismissed',
-      'campaignId': 'c1',
-      'reason': 'later',
-    }) as InAppMessageDismissed;
+    final event =
+        InAppMessageEvent.fromMap({
+              'type': 'dismissed',
+              'campaignId': 'c1',
+              'reason': 'later',
+            })
+            as InAppMessageDismissed;
     expect(event.reason, InAppDismissReason.unknown);
   });
 
@@ -104,20 +113,111 @@ void main() {
   });
 
   test('clicked without buttonId or payload keeps both null', () {
-    final clicked = InAppMessageEvent.fromMap({
-      'type': 'clicked',
-      'campaignId': 'c1',
-    }) as InAppMessageClicked;
+    final clicked =
+        InAppMessageEvent.fromMap({'type': 'clicked', 'campaignId': 'c1'})
+            as InAppMessageClicked;
     expect(clicked.buttonId, isNull);
     expect(clicked.payload, isNull);
   });
 
   test('answered keeps an unexpected value type as-is without throwing', () {
-    final answered = InAppMessageEvent.fromMap({
-      'type': 'answered',
-      'campaignId': 'c1',
-      'value': 4.5,
-    }) as InAppMessageAnswered;
+    final answered =
+        InAppMessageEvent.fromMap({
+              'type': 'answered',
+              'campaignId': 'c1',
+              'value': 4.5,
+            })
+            as InAppMessageAnswered;
     expect(answered.value, 4.5);
+  });
+
+  test('dismissed without a reason maps to unknown', () {
+    final event =
+        InAppMessageEvent.fromMap({'type': 'dismissed', 'campaignId': 'c1'})
+            as InAppMessageDismissed;
+    expect(event.reason, InAppDismissReason.unknown);
+  });
+
+  test('answered with a null value returns null', () {
+    expect(
+      InAppMessageEvent.fromMap({
+        'type': 'answered',
+        'campaignId': 'c1',
+        'value': null,
+      }),
+      isNull,
+    );
+  });
+
+  test('failed without a message returns null', () {
+    expect(InAppMessageEvent.fromMap({'type': 'failed'}), isNull);
+  });
+
+  test('a wrong-typed required field returns null instead of throwing', () {
+    expect(
+      InAppMessageEvent.fromMap({'type': 'shown', 'campaignId': 7}),
+      isNull,
+    );
+    expect(
+      InAppMessageEvent.fromMap({'type': 'clicked', 'campaignId': 7}),
+      isNull,
+    );
+    expect(
+      InAppMessageEvent.fromMap({'type': 'dismissed', 'campaignId': true}),
+      isNull,
+    );
+    expect(
+      InAppMessageEvent.fromMap({
+        'type': 'answered',
+        'campaignId': 7,
+        'value': 1,
+      }),
+      isNull,
+    );
+    expect(InAppMessageEvent.fromMap({'type': 'failed', 'message': 5}), isNull);
+    expect(InAppMessageEvent.fromMap({'type': 5, 'campaignId': 'c1'}), isNull);
+  });
+
+  test('a wrong-typed optional field becomes null instead of throwing', () {
+    final clicked =
+        InAppMessageEvent.fromMap({
+              'type': 'clicked',
+              'campaignId': 'c1',
+              'buttonId': 3,
+              'payload': {1: 'a'},
+            })
+            as InAppMessageClicked;
+    expect(clicked.buttonId, isNull);
+    expect(clicked.payload, isNull);
+
+    final nestedBadKey =
+        InAppMessageEvent.fromMap({
+              'type': 'clicked',
+              'campaignId': 'c1',
+              'payload': {
+                'n': {2: 'a'},
+              },
+            })
+            as InAppMessageClicked;
+    expect(nestedBadKey.payload, isNull);
+
+    final answered =
+        InAppMessageEvent.fromMap({
+              'type': 'answered',
+              'campaignId': 'c1',
+              'value': 4,
+              'comment': 9,
+            })
+            as InAppMessageAnswered;
+    expect(answered.comment, isNull);
+
+    final failed =
+        InAppMessageEvent.fromMap({
+              'type': 'failed',
+              'message': 'm',
+              'campaignId': 9,
+            })
+            as InAppMessageFailed;
+    expect(failed.campaignId, isNull);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'grovs_method_channel.dart';
+import 'models/grovs_in_app.dart';
 import 'models/grovs_link.dart';
 
 abstract class GrovsPlatform extends PlatformInterface {
@@ -104,6 +105,42 @@ abstract class GrovsPlatform extends PlatformInterface {
   /// Sync a map of raw screen names to friendly names
   Future<void> setScreenAliases(Map<String, String> aliases) {
     throw UnimplementedError('setScreenAliases() has not been implemented.');
+  }
+
+  /// Hold back in-app messages until [resumeInAppMessages] is called
+  Future<void> pauseInAppMessages() {
+    throw UnimplementedError('pauseInAppMessages() has not been implemented.');
+  }
+
+  /// Allow in-app messages to show again
+  Future<void> resumeInAppMessages() {
+    throw UnimplementedError('resumeInAppMessages() has not been implemented.');
+  }
+
+  /// Drop the queued in-app messages and leave messages paused
+  Future<void> discardInAppMessages({bool dismissCurrent = false}) {
+    throw UnimplementedError(
+      'discardInAppMessages() has not been implemented.',
+    );
+  }
+
+  /// Set the screens where in-app messages are not shown
+  Future<void> setInAppExcludedScreens(List<String> screens) {
+    throw UnimplementedError(
+      'setInAppExcludedScreens() has not been implemented.',
+    );
+  }
+
+  /// Turn the in-app message debug logs on or off
+  Future<void> setInAppDebugLogging(bool enabled) {
+    throw UnimplementedError(
+      'setInAppDebugLogging() has not been implemented.',
+    );
+  }
+
+  /// Stream of in-app message events
+  Stream<InAppMessageEvent> get onInAppMessage {
+    throw UnimplementedError('onInAppMessage has not been implemented.');
   }
 
   /// Stream of asynchronous SDK errors, available on iOS only.

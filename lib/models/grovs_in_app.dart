@@ -34,9 +34,10 @@ sealed class InAppMessageEvent {
 
   /// Builds an event from the native wire map.
   ///
-  /// Returns null for an unknown `type` or a missing required field.
+  /// Returns null for an unknown `type`, or a missing or wrong-typed required
+  /// field. A wrong-typed optional field is treated as absent.
   static InAppMessageEvent? fromMap(Map<dynamic, dynamic> map) {
-    final campaignId = map['campaignId'] as String?;
+    final campaignId = _stringOrNull(map['campaignId']);
     switch (map['type']) {
       case 'shown':
         return campaignId == null ? null : InAppMessageShown(campaignId);
@@ -45,8 +46,10 @@ sealed class InAppMessageEvent {
         final payload = map['payload'];
         return InAppMessageClicked(
           campaignId,
-          buttonId: map['buttonId'] as String?,
-          payload: payload is Map ? _toStringKeyedMap(payload) : null,
+          buttonId: _stringOrNull(map['buttonId']),
+          payload: payload is Map && _hasOnlyStringKeys(payload)
+              ? _toStringKeyedMap(payload)
+              : null,
         );
       case 'dismissed':
         if (campaignId == null) return null;
@@ -60,10 +63,10 @@ sealed class InAppMessageEvent {
         return InAppMessageAnswered(
           campaignId,
           value,
-          comment: map['comment'] as String?,
+          comment: _stringOrNull(map['comment']),
         );
       case 'failed':
-        final message = map['message'] as String?;
+        final message = _stringOrNull(map['message']);
         return message == null
             ? null
             : InAppMessageFailed(message, campaignId: campaignId);
@@ -127,6 +130,18 @@ final class InAppMessageFailed extends InAppMessageEvent {
   final String message;
 
   const InAppMessageFailed(this.message, {this.campaignId});
+}
+
+String? _stringOrNull(Object? value) => value is String ? value : null;
+
+bool _hasOnlyStringKeys(Object? value) {
+  if (value is Map) {
+    return value.entries.every(
+      (entry) => entry.key is String && _hasOnlyStringKeys(entry.value),
+    );
+  }
+  if (value is List) return value.every(_hasOnlyStringKeys);
+  return true;
 }
 
 Map<String, dynamic> _toStringKeyedMap(Map<dynamic, dynamic> map) {

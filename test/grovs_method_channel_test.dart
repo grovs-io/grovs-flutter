@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grovs_flutter_plugin/grovs_method_channel.dart';
+import 'package:grovs_flutter_plugin/models/grovs_in_app.dart';
 import 'package:grovs_flutter_plugin/models/grovs_link.dart';
 
 void main() {
@@ -92,7 +93,11 @@ void main() {
       throwsA(
         isA<GrovsException>()
             .having((error) => error.code, 'code', 'INVALID_ARGUMENT')
-            .having((error) => error.message, 'message', 'Failed to handle URL'),
+            .having(
+              (error) => error.message,
+              'message',
+              'Failed to handle URL',
+            ),
       ),
     );
   });
@@ -298,4 +303,109 @@ void main() {
       'aliases': {'/home': 'Home', '/cart': 'Cart'},
     });
   });
+
+  group('in-app controls', () {
+    final cases = <String, ({Future<void> Function() call, Object? args})>{
+      'pauseInAppMessages': (
+        call: () => platform.pauseInAppMessages(),
+        args: null,
+      ),
+      'resumeInAppMessages': (
+        call: () => platform.resumeInAppMessages(),
+        args: null,
+      ),
+      'discardInAppMessages': (
+        call: () => platform.discardInAppMessages(),
+        args: {'dismissCurrent': false},
+      ),
+      'setInAppExcludedScreens': (
+        call: () => platform.setInAppExcludedScreens(['Checkout', 'Cart']),
+        args: {
+          'screens': ['Checkout', 'Cart'],
+        },
+      ),
+      'setInAppDebugLogging': (
+        call: () => platform.setInAppDebugLogging(true),
+        args: {'enabled': true},
+      ),
+    };
+
+    cases.forEach((method, testCase) {
+      test('$method sends its method name and arguments', () async {
+        MethodCall? captured;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              captured = call;
+              return null;
+            });
+
+        await testCase.call();
+
+        expect(captured?.method, method);
+        expect(captured?.arguments, testCase.args);
+      });
+
+      test('$method wraps platform errors', () async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              throw PlatformException(code: 'IN_APP_ERROR', message: 'boom');
+            });
+
+        await expectLater(
+          testCase.call(),
+          throwsA(
+            isA<GrovsException>()
+                .having((error) => error.code, 'code', 'IN_APP_ERROR')
+                .having((error) => error.message, 'message', 'boom'),
+          ),
+        );
+      });
+    });
+
+    test('discardInAppMessages(dismissCurrent: true) sends true', () async {
+      MethodCall? captured;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            captured = call;
+            return null;
+          });
+
+      await platform.discardInAppMessages(dismissCurrent: true);
+
+      expect(captured?.arguments, {'dismissCurrent': true});
+    });
+  });
+
+  test(
+    'onInAppMessage maps events, drops unknown ones and is cached',
+    () async {
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockStreamHandler(
+        const EventChannel('grovs/inapp'),
+        MockStreamHandler.inline(
+          onListen: (arguments, events) {
+            events.success({'type': 'shown', 'campaignId': 'c1'});
+            events.success({'type': 'bogus'});
+            events.success({'type': 'failed', 'message': 'm'});
+            events.endOfStream();
+          },
+        ),
+      );
+      addTearDown(
+        () => messenger.setMockStreamHandler(
+          const EventChannel('grovs/inapp'),
+          null,
+        ),
+      );
+
+      final stream = platform.onInAppMessage;
+      expect(identical(stream, platform.onInAppMessage), isTrue);
+      expect(stream.isBroadcast, isTrue);
+
+      final events = await stream.toList();
+
+      expect(events, [isA<InAppMessageShown>(), isA<InAppMessageFailed>()]);
+    },
+  );
 }

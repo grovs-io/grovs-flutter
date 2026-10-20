@@ -1,6 +1,9 @@
 import 'grovs_navigator_observer.dart';
 import 'grovs_platform_interface.dart';
+import 'models/grovs_in_app.dart';
 import 'models/grovs_link.dart';
+
+export 'models/grovs_in_app.dart';
 
 /// Main class for interacting with the Grovs SDK
 class Grovs {
@@ -315,6 +318,57 @@ class Grovs {
   Future<void> setScreenAliases(Map<String, String> aliases) {
     _screenAliases = Map<String, String>.from(aliases);
     return GrovsPlatform.instance.setScreenAliases(aliases);
+  }
+
+  /// Hold back in-app messages until [resumeInAppMessages] is called.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> pauseInAppMessages() {
+    return GrovsPlatform.instance.pauseInAppMessages();
+  }
+
+  /// Allow in-app messages to show again after [pauseInAppMessages] or
+  /// [discardInAppMessages].
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> resumeInAppMessages() {
+    return GrovsPlatform.instance.resumeInAppMessages();
+  }
+
+  /// Drop the in-app messages that are queued to show.
+  ///
+  /// Messages stay paused afterwards, call [resumeInAppMessages] to show new
+  /// ones. When [dismissCurrent] is true, the message on screen is closed too.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> discardInAppMessages({bool dismissCurrent = false}) {
+    return GrovsPlatform.instance.discardInAppMessages(
+      dismissCurrent: dismissCurrent,
+    );
+  }
+
+  /// Set the screens where in-app messages are not shown.
+  ///
+  /// Names are matched against the names sent by [trackScreenView] and
+  /// [GrovsNavigatorObserver], after screen aliases are applied.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> setInAppExcludedScreens(List<String> screens) {
+    return GrovsPlatform.instance.setInAppExcludedScreens(screens);
+  }
+
+  /// Turn the in-app message debug logs on or off.
+  ///
+  /// On iOS, also call `setDebugLevel('info')` to see the logs.
+  ///
+  /// Throws [GrovsException] if the operation fails.
+  Future<void> setInAppDebugLogging(bool enabled) {
+    return GrovsPlatform.instance.setInAppDebugLogging(enabled);
+  }
+
+  /// Stream of in-app message events, such as shown, clicked and dismissed.
+  Stream<InAppMessageEvent> get onInAppMessage {
+    return GrovsPlatform.instance.onInAppMessage;
   }
 
   /// Stream of asynchronous SDK errors on iOS.

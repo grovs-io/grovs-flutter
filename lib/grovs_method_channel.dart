@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'grovs_platform_interface.dart';
+import 'models/grovs_in_app.dart';
 import 'models/grovs_link.dart';
 
 /// An implementation of [GrovsPlatform] that uses method channels.
@@ -18,7 +19,12 @@ class MethodChannelGrovs extends GrovsPlatform {
   @visibleForTesting
   final errorChannel = const EventChannel('grovs/errors');
 
+  /// The event channel for receiving in-app message events.
+  @visibleForTesting
+  final inAppChannel = const EventChannel('grovs/inapp');
+
   Stream<DeeplinkDetails>? _onDeeplinkReceived;
+  Stream<InAppMessageEvent>? _onInAppMessage;
   Stream<GrovsError>? _onError;
 
   @override
@@ -175,10 +181,7 @@ class MethodChannelGrovs extends GrovsPlatform {
         'tags': tags,
       });
     } on PlatformException catch (e) {
-      throw GrovsException(
-        e.message ?? 'Failed to track event',
-        code: e.code,
-      );
+      throw GrovsException(e.message ?? 'Failed to track event', code: e.code);
     }
   }
 
@@ -224,6 +227,85 @@ class MethodChannelGrovs extends GrovsPlatform {
         code: e.code,
       );
     }
+  }
+
+  @override
+  Future<void> pauseInAppMessages() async {
+    try {
+      await methodChannel.invokeMethod('pauseInAppMessages');
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to pause in-app messages',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> resumeInAppMessages() async {
+    try {
+      await methodChannel.invokeMethod('resumeInAppMessages');
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to resume in-app messages',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> discardInAppMessages({bool dismissCurrent = false}) async {
+    try {
+      await methodChannel.invokeMethod('discardInAppMessages', {
+        'dismissCurrent': dismissCurrent,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to discard in-app messages',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> setInAppExcludedScreens(List<String> screens) async {
+    try {
+      await methodChannel.invokeMethod('setInAppExcludedScreens', {
+        'screens': screens,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to set in-app excluded screens',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Future<void> setInAppDebugLogging(bool enabled) async {
+    try {
+      await methodChannel.invokeMethod('setInAppDebugLogging', {
+        'enabled': enabled,
+      });
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to set in-app debug logging',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
+  Stream<InAppMessageEvent> get onInAppMessage {
+    _onInAppMessage ??= inAppChannel
+        .receiveBroadcastStream()
+        .map(
+          (dynamic event) =>
+              InAppMessageEvent.fromMap(event as Map<dynamic, dynamic>),
+        )
+        .where((event) => event != null)
+        .cast<InAppMessageEvent>();
+    return _onInAppMessage!;
   }
 
   @override

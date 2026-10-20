@@ -41,6 +41,37 @@ class MockGrovsPlatform
   @override
   Stream<GrovsError> get onError => errors;
 
+  final inAppCalls = <String>[];
+  final inAppEvents = const Stream<InAppMessageEvent>.empty();
+
+  @override
+  Future<void> pauseInAppMessages() async {
+    inAppCalls.add('pause');
+  }
+
+  @override
+  Future<void> resumeInAppMessages() async {
+    inAppCalls.add('resume');
+  }
+
+  @override
+  Future<void> discardInAppMessages({bool dismissCurrent = false}) async {
+    inAppCalls.add('discard:$dismissCurrent');
+  }
+
+  @override
+  Future<void> setInAppExcludedScreens(List<String> screens) async {
+    inAppCalls.add('excluded:${screens.join(',')}');
+  }
+
+  @override
+  Future<void> setInAppDebugLogging(bool enabled) async {
+    inAppCalls.add('debug:$enabled');
+  }
+
+  @override
+  Stream<InAppMessageEvent> get onInAppMessage => inAppEvents;
+
   @override
   Future<void> setPushToken(String token) => Future.value();
 
@@ -150,6 +181,28 @@ void main() {
     final error = await Grovs().onError.first;
     expect(error.code, GrovsErrorCode.authenticationFailed);
     expect(error.message, 'Auth failed');
+  });
+
+  test('in-app controls forward to the platform', () async {
+    final fakePlatform = MockGrovsPlatform();
+    GrovsPlatform.instance = fakePlatform;
+
+    await Grovs().pauseInAppMessages();
+    await Grovs().resumeInAppMessages();
+    await Grovs().discardInAppMessages();
+    await Grovs().discardInAppMessages(dismissCurrent: true);
+    await Grovs().setInAppExcludedScreens(['A', 'B']);
+    await Grovs().setInAppDebugLogging(true);
+
+    expect(fakePlatform.inAppCalls, [
+      'pause',
+      'resume',
+      'discard:false',
+      'discard:true',
+      'excluded:A,B',
+      'debug:true',
+    ]);
+    expect(Grovs().onInAppMessage, same(fakePlatform.inAppEvents));
   });
 
   test('setScreenAliases populates the static alias store', () async {
