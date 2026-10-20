@@ -33,8 +33,8 @@ The Grovs Flutter SDK provides deep linking, app links, universal links, link ge
 
 - **Deep linking & universal links** — route users to the right in-app screen, even after install
 - **Smart link generation** — create trackable links with metadata, custom redirects, and UTM parameters
-- **In-app messaging** — display messages and announcements from the Grovs dashboard
-- **Push notifications** — receive push notifications for dashboard-sent messages
+- **In-app messages** — show messages and announcements from the Grovs dashboard, with controls and events
+- **Push campaigns** — receive push notifications sent from the Grovs dashboard
 - **Revenue tracking** — log App Store, Google Play, and custom purchases with automatic attribution
 - **Analytics**: track custom events and screen views, with automatic screen tracking via `Grovs.navigatorObserver`
 - **User identity** — attach user IDs and attributes for analytics and segmentation
@@ -56,7 +56,7 @@ Add the dependency to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  grovs_flutter_plugin: ^3.1.0
+  grovs_flutter_plugin: ^3.2.0
 ```
 
 Then run:
@@ -374,32 +374,150 @@ final link = await grovs.generateLink(
 Share.share(link);
 ```
 
-## Messages
+## In-app messages
 
-> If console messages have **automatic display** enabled in your dashboard, they will appear in your app without any additional integration.
+> If in-app messages have **automatic display** enabled in your dashboard, they appear in your app without any additional code. The controls below are optional.
 
-### Push notifications
-
-Pass the device token to receive push notifications for dashboard-sent messages:
+### Controls
 
 ```dart
-import 'package:firebase_messaging/firebase_messaging.dart';
+final grovs = Grovs();
 
-// Get and set the token
-final token = await FirebaseMessaging.instance.getToken();
-if (token != null) {
-  await grovs.setPushToken(token);
-}
+// Hold messages back, for example during checkout
+await grovs.pauseInAppMessages();
+await grovs.resumeInAppMessages();
 
-// Listen for token refreshes
+// Drop queued messages. Messages stay paused until you resume.
+await grovs.discardInAppMessages();
+await grovs.discardInAppMessages(dismissCurrent: true); // also closes the one on screen
+
+// Never show messages on these screens
+await grovs.setInAppExcludedScreens(['Checkout', 'Login']);
+
+// Log what the SDK is doing
+await grovs.setInAppDebugLogging(true);
+```
+
+A message that is due on an excluded screen waits until the user navigates away.
+
+Screen names come from `GrovsNavigatorObserver` or `trackScreenView`. Excluded screens are matched against the name after [screen aliases](#screen-aliases) are applied.
+
+### Listen for message events
+
+```dart
+grovs.onInAppMessage.listen((event) {
+  switch (event) {
+    case InAppMessageShown(:final campaignId):
+      print('Shown: $campaignId');
+    case InAppMessageClicked(:final buttonId, :final payload):
+      print('Clicked $buttonId with $payload');
+    case InAppMessageDismissed(:final reason):
+      print('Dismissed: $reason');
+    case InAppMessageAnswered(:final value, :final comment):
+      print('Answered $value, comment: $comment');
+    case InAppMessageFailed(:final message):
+      print('Failed: $message');
+  }
+});
+```
+
+Import the event types with `import 'package:grovs_flutter_plugin/models/grovs_in_app.dart';`.
+
+On Android, an event that happens while no Flutter engine is attached is dropped. On iOS it is kept for the next engine.
+
+### Testing
+
+To try a message with **Send test message** in the dashboard, call `setUserIdentifier` first. The test message is sent to that user.
+
+### Android extras
+
+- Rating campaigns need the Google Play review library in `android/app/build.gradle`:
+
+  ```groovy
+  dependencies {
+      implementation 'com.google.android.play:review:2.0.2'
+  }
+  ```
+
+- Campaigns that ask for push permission need `POST_NOTIFICATIONS` in your manifest. `firebase_messaging` already declares it.
+
+## Push campaigns
+
+Push campaigns need your Firebase or APNs credentials in the [Grovs dashboard](https://app.grovs.io) under your platform's push notification settings.
+
+> Push notifications require a physical device. They do not work in the iOS Simulator.
+
+### iOS
+
+**1. Set the notification center delegate.** Grovs shows and counts its pushes through the system notification center. Set the delegate in `ios/Runner/AppDelegate.swift`:
+
+```swift
+import UserNotifications
+
+// In application(_:didFinishLaunchingWithOptions:), before returning
+UNUserNotificationCenter.current().delegate = self
+```
+
+Without this line, taps on Grovs pushes are not counted and Grovs pushes do not show while the app is open.
+
+**2. Token.** The plugin forwards the APNs token for you. You do not need to call `setPushToken` on iOS. If you do, it works, but it causes one extra attributes update.
+
+**3. Foreground pushes.** While the app is open, Grovs pushes show as a banner, in the list and with sound (alert and sound on iOS 13). Pushes from other providers are left to your own code.
+
+**4. Images (optional).** To show a picture in the push, add a Notification Service Extension target to your Xcode project, then add this to the `Podfile`:
+
+```ruby
+target 'NotificationService' do
+  pod 'GrovsNotificationService', '~> 3.1'
+end
+```
+
+Make the extension's principal class inherit from the Grovs one:
+
+```swift
+import GrovsNotificationService
+
+class NotificationService: GrovsNotificationServiceExtension {}
+```
+
+Use JPEG, PNG or GIF images. The iOS Simulator never runs the extension, so test on a device.
+
+### Android
+
+**1. Token.** When Firebase is in your app, the plugin fetches the first FCM token for you. To keep up with refreshes, listen to `onTokenRefresh`:
+
+```dart
 FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
   grovs.setPushToken(newToken);
 });
 ```
 
-Upload your Firebase or APNs credentials in the [Grovs dashboard](https://app.grovs.io) under your platform's push notification settings.
+**2. Foreground pushes with `firebase_messaging`.** The plugin's messaging service runs at a lower priority, so `firebase_messaging` handles messages first. In that case Grovs does not draw pushes while the app is open. Draw them in your own `onMessage` handler, and use `isGrovsNotification` to tell Grovs pushes apart:
 
-> Push notifications require a physical device. They do not work in the iOS Simulator.
+```dart
+FirebaseMessaging.onMessage.listen((message) async {
+  if (await grovs.isGrovsNotification(message.data)) {
+    // Show the notification yourself, for example with flutter_local_notifications
+  }
+});
+```
+
+Without `firebase_messaging`, Grovs draws foreground pushes itself.
+
+**3. Taps.** Taps on Grovs pushes are counted without any code.
+
+### Both platforms
+
+When a user taps a Grovs push, the push data arrives on `onDeeplinkReceived`, like a deep link. `link` is null when the push has no link. On Android, the values in `data` are Strings.
+
+```dart
+grovs.onDeeplinkReceived.listen((details) {
+  final link = details.link; // null for a push without a link
+  final data = details.data;
+});
+```
+
+`handleNotificationOpen(data)` counts a tap and opens the push's link. It is only for apps that cannot use the native tap handling above, and it must be called from a tap handler, never when a push is only delivered. Use one path, not both. On iOS, setting the delegate and also calling `handleNotificationOpen` counts every tap twice.
 
 ## Revenue Tracking
 
@@ -501,7 +619,8 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | Property | Type | Description |
 |---|---|---|
 | `onError` | `Stream<GrovsError>` | Native SDK errors (iOS only for now) |
-| `onDeeplinkReceived` | `Stream<DeeplinkDetails>` | Stream of deep link events |
+| `onDeeplinkReceived` | `Stream<DeeplinkDetails>` | Stream of deep link events and Grovs push taps |
+| `onInAppMessage` | `Stream<InAppMessageEvent>` | Stream of in-app message events |
 
 ### Key Methods
 
@@ -521,6 +640,13 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | `setGlobalTags(tags)` | Set tags applied to all future events |
 | `setScreenAliases(aliases)` | Map raw screen names to friendly dashboard names |
 | `Grovs.navigatorObserver` | `NavigatorObserver` for automatic screen tracking |
+| `pauseInAppMessages()` | Hold in-app messages back |
+| `resumeInAppMessages()` | Show in-app messages again |
+| `discardInAppMessages({dismissCurrent})` | Drop queued in-app messages, optionally close the current one |
+| `setInAppExcludedScreens(screens)` | Screens where in-app messages must not show |
+| `setInAppDebugLogging(enabled)` | Turn in-app message logging on or off |
+| `isGrovsNotification(data)` | Whether a push payload was sent by Grovs |
+| `handleNotificationOpen(data)` | Count a tap on a Grovs push and open its link |
 
 Full API reference: [docs.grovs.io/docs/sdk/flutter/api-reference](https://docs.grovs.io/docs/sdk/flutter/api-reference)
 

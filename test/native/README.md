@@ -20,7 +20,7 @@ Coverage includes buffer limits and ordering, consent withdrawal across engines,
 queued callback rejection, engine replacement, error-only subscriptions, weak
 ownership, late cancellation, activity rotation, starting the SDK from the host
 lifecycle before and after onStart, cancellation and reuse of link generation,
-and push token, tap and foreground handling.
+in-app message events and controls, and push token, tap and foreground handling.
 
 These tests do not verify SDK API compatibility or device behavior. Run native
 builds and device checks separately when the required SDK releases are available.

@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'grovs_flutter_plugin'
-  s.version          = '3.1.0'
+  s.version          = '3.2.0'
   s.summary          = 'Flutter plugin for the Grovs SDK.'
   s.description      = <<-DESC
 Deep linking, smart links, analytics, user messaging, and campaign tracking for Flutter apps.

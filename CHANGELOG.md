@@ -1,3 +1,21 @@
+## 3.2.0
+
+Added:
+
+* In-app messages: `pauseInAppMessages`, `resumeInAppMessages`, `discardInAppMessages`, `setInAppExcludedScreens`, `setInAppDebugLogging` and the `onInAppMessage` stream of `InAppMessageEvent`.
+* Push campaigns: `isGrovsNotification` and `handleNotificationOpen`. Taps on Grovs pushes arrive on `onDeeplinkReceived`, with `link` null when the push has no link.
+* iOS: the push token is forwarded automatically, taps on Grovs pushes are counted, and Grovs pushes show while the app is open. Set `UNUserNotificationCenter.current().delegate = self` in your `AppDelegate`.
+* Android: the first FCM token is fetched automatically when Firebase is present.
+
+Changed:
+
+* Updated the native SDKs to Grovs 3.1.
+* Android: the Grovs messaging service now has priority -1, so `firebase_messaging` handles messages first when your app uses it.
+
+Removed:
+
+* iOS: the hidden inbox handlers, which the native SDK no longer has.
+
 ## 3.1.0
 
 Requires Flutter 3.38.0 or later.
