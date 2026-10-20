@@ -2,11 +2,16 @@ import Flutter
 import Grovs
 
 // The SDK and its pending events outlive individual Flutter engines.
-final class GrovsEventRelay: NSObject, GrovsDelegate {
+final class GrovsEventRelay: NSObject, GrovsDelegate, GrovsInAppDelegate {
     let errors = BufferedEventStream()
     let deeplinks = BufferedEventStream()
+    let inApp = BufferedEventStream()
 
     func grovsDidEncounterError(_ error: GrovsError, message: String) {
+        if error == .inAppDisplayFailed {
+            inApp.send(["type": "failed", "message": message])
+            return
+        }
         errors.send(["code": error.description, "message": message])
     }
 
@@ -16,6 +21,27 @@ final class GrovsEventRelay: NSObject, GrovsDelegate {
         if let payload = payload { event["data"] = payload }
         if let tracking = tracking { event["tracking"] = tracking }
         deeplinks.send(event)
+    }
+
+    func grovsDidShowInAppMessage(campaignID: String) {
+        inApp.send(["type": "shown", "campaignId": campaignID])
+    }
+
+    func grovsDidTapInAppMessage(campaignID: String, buttonID: String?, payload: [String: Any]?) {
+        var event: [String: Any] = ["type": "clicked", "campaignId": campaignID]
+        if let buttonID = buttonID { event["buttonId"] = buttonID }
+        if let payload = payload { event["payload"] = payload }
+        inApp.send(event)
+    }
+
+    func grovsDidDismissInAppMessage(campaignID: String, reason: String) {
+        inApp.send(["type": "dismissed", "campaignId": campaignID, "reason": reason])
+    }
+
+    func grovsDidAnswerInAppMessage(campaignID: String, value: Any, comment: String?) {
+        var event: [String: Any] = ["type": "answered", "campaignId": campaignID, "value": value]
+        if let comment = comment { event["comment"] = comment }
+        inApp.send(event)
     }
 }
 

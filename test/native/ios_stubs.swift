@@ -15,7 +15,16 @@ protocol GrovsDelegate: AnyObject {
     func grovsDidEncounterError(_ error: GrovsError, message: String)
     func grovsReceivedPayloadFromDeeplink(link: String?, payload: [String: Any]?, tracking: [String: Any]?)
 }
-struct GrovsError { let description: String }
+enum GrovsError: CustomStringConvertible {
+    case authenticationFailed, inAppDisplayFailed
+    var description: String { self == .inAppDisplayFailed ? "in_app_display_failed" : "authentication_failed" }
+}
+protocol GrovsInAppDelegate: AnyObject {
+    func grovsDidShowInAppMessage(campaignID: String)
+    func grovsDidTapInAppMessage(campaignID: String, buttonID: String?, payload: [String: Any]?)
+    func grovsDidDismissInAppMessage(campaignID: String, reason: String)
+    func grovsDidAnswerInAppMessage(campaignID: String, value: Any, comment: String?)
+}
 class Messenger: NSObject {
     var methods: [String: FlutterMethodChannel] = [:]
     var events: [String: FlutterEventChannel] = [:]
@@ -43,6 +52,7 @@ class UIApplication {}
 var testInfoDictionary: [String: Any]? = nil
 class Grovs {
     static weak var delegate: GrovsDelegate?
+    static weak var inAppDelegate: GrovsInAppDelegate?
     static var log: [String] = []
     static func configure(APIKey: String, useTestEnvironment: Bool, baseURL: String?, autoTrackScreenViews: Bool, clipboardDomains: [String]?, enabled: Bool, delegate: GrovsDelegate?) {
         log.append("configure enabled=\(enabled)")

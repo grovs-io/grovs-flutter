@@ -13,8 +13,10 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
     private var methodChannel: FlutterMethodChannel?
     private var eventChannel: FlutterEventChannel?
     private var errorChannel: FlutterEventChannel?
+    private var inAppChannel: FlutterEventChannel?
     private let errorStream = BufferedStreamHandler(stream: GrovsPlugin.events.errors)
     private let deeplinkStream = BufferedStreamHandler(stream: GrovsPlugin.events.deeplinks)
+    private let inAppStream = BufferedStreamHandler(stream: GrovsPlugin.events.inApp)
 
     // Configuration, consent state and the launch link received while disabled are
     // shared by every engine because the SDK is configured once per process.
@@ -28,6 +30,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         
         let instance = GrovsPlugin()
         Grovs.delegate = events
+        Grovs.inAppDelegate = events
         instance.methodChannel = channel
         instance.eventChannel = eventChannel
         registrar.publish(instance)
@@ -39,16 +42,22 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         let errorChannel = FlutterEventChannel(name: "grovs/errors", binaryMessenger: registrar.messenger())
         instance.errorChannel = errorChannel
         errorChannel.setStreamHandler(instance.errorStream)
+        let inAppChannel = FlutterEventChannel(name: "grovs/inapp", binaryMessenger: registrar.messenger())
+        instance.inAppChannel = inAppChannel
+        inAppChannel.setStreamHandler(instance.inAppStream)
     }
 
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
         _ = deeplinkStream.onCancel(withArguments: nil)
         _ = errorStream.onCancel(withArguments: nil)
+        _ = inAppStream.onCancel(withArguments: nil)
         eventChannel?.setStreamHandler(nil)
         errorChannel?.setStreamHandler(nil)
+        inAppChannel?.setStreamHandler(nil)
         methodChannel?.setMethodCallHandler(nil)
         eventChannel = nil
         errorChannel = nil
+        inAppChannel = nil
         methodChannel = nil
     }
 
@@ -75,6 +84,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         let enabled = info["GrovsEnabled"] as? Bool ?? true
         sdkEnabled = enabled
         events.deeplinks.enabled = enabled
+        events.inApp.enabled = enabled
         Grovs.configure(
             APIKey: apiKey,
             useTestEnvironment: info["GrovsUseTestEnvironment"] as? Bool ?? false,
@@ -114,6 +124,7 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         guard enabled != GrovsPlugin.sdkEnabled else { return }
         GrovsPlugin.sdkEnabled = enabled
         GrovsPlugin.events.deeplinks.enabled = enabled
+        GrovsPlugin.events.inApp.enabled = enabled
         Grovs.setSDK(enabled: enabled)
 
         guard enabled, let pending = GrovsPlugin.pendingLaunchLink else { return }
@@ -358,6 +369,44 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
         case "handleUrl":
             result(GrovsPlugin.handleUrl(arguments: call.arguments))
+
+        case "pauseInAppMessages":
+            Grovs.pauseInAppMessages()
+            result(nil)
+
+        case "resumeInAppMessages":
+            Grovs.resumeInAppMessages()
+            result(nil)
+
+        case "discardInAppMessages":
+            guard let args = call.arguments as? [String: Any],
+                  let dismissCurrent = args["dismissCurrent"] as? Bool else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "dismissCurrent is required", details: nil))
+                return
+            }
+
+            Grovs.discardInAppMessages(dismissCurrent: dismissCurrent)
+            result(nil)
+
+        case "setInAppExcludedScreens":
+            guard let args = call.arguments as? [String: Any],
+                  let screens = args["screens"] as? [String] else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "screens is required", details: nil))
+                return
+            }
+
+            Grovs.setInAppExcludedScreens(screens)
+            result(nil)
+
+        case "setInAppDebugLogging":
+            guard let args = call.arguments as? [String: Any],
+                  let enabled = args["enabled"] as? Bool else {
+                result(FlutterError(code: "INVALID_ARGUMENT", message: "enabled is required", details: nil))
+                return
+            }
+
+            Grovs.setInAppDebugLogging(enabled)
+            result(nil)
 
         default:
             result(FlutterMethodNotImplemented)

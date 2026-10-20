@@ -12,7 +12,7 @@ func emit(_ id: String) {
     Grovs.delegate!.grovsReceivedPayloadFromDeeplink(link: id, payload: ["id": id], tracking: ["source": "test"])
 }
 func error(_ message: String) {
-    Grovs.delegate!.grovsDidEncounterError(GrovsError(description: "authentication_failed"), message: message)
+    Grovs.delegate!.grovsDidEncounterError(.authenticationFailed, message: message)
 }
 
 let first = engine()
@@ -191,3 +191,75 @@ manualPlugin.setSDKEnabled(true)
 precondition(links() == ["https://app.sqd.link/manual", "grovstest://app.sqd.link/manual"])
 manualPlugin.detachFromEngine(for: manualEngine)
 print("PASS iOS: handleUrl validates input, reaches the SDK only while enabled, and never queues")
+
+let inAppDelegate = Grovs.inAppDelegate!
+func inAppEngine() -> FlutterPluginRegistrar {
+    let registrar = engine()
+    precondition(Grovs.inAppDelegate === inAppDelegate)
+    return registrar
+}
+func inAppStream(_ engine: FlutterPluginRegistrar) -> FlutterStreamHandler { stream(engine, "grovs/inapp") }
+func listenInApp(_ engine: FlutterPluginRegistrar, _ sink: @escaping ([String: Any]) -> Void) {
+    _ = inAppStream(engine).onListen(withArguments: nil) { sink($0 as! [String: Any]) }
+}
+
+let inAppFirst = inAppEngine()
+for id in 0..<25 { inAppDelegate.grovsDidShowInAppMessage(campaignID: String(id)) }
+var inAppEvents: [[String: Any]] = []
+listenInApp(inAppFirst) { inAppEvents.append($0) }
+precondition(inAppEvents.map { $0["campaignId"] as! String } == (5..<25).map(String.init))
+precondition(inAppEvents.allSatisfy { $0["type"] as? String == "shown" && $0.count == 2 })
+_ = inAppStream(inAppFirst).onCancel(withArguments: nil)
+print("PASS iOS: in-app events are buffered with a bounded FIFO and replayed on listen")
+
+inAppEvents.removeAll()
+listenInApp(inAppFirst) { inAppEvents.append($0) }
+inAppDelegate.grovsDidTapInAppMessage(campaignID: "c", buttonID: "b", payload: ["nested": ["k": 1]])
+inAppDelegate.grovsDidTapInAppMessage(campaignID: "c", buttonID: nil, payload: nil)
+inAppDelegate.grovsDidDismissInAppMessage(campaignID: "c", reason: "swipe")
+inAppDelegate.grovsDidAnswerInAppMessage(campaignID: "c", value: 4, comment: "great")
+inAppDelegate.grovsDidAnswerInAppMessage(campaignID: "c", value: "opt", comment: nil)
+precondition(inAppEvents[0]["type"] as? String == "clicked" && inAppEvents[0]["buttonId"] as? String == "b")
+precondition((inAppEvents[0]["payload"] as! [String: [String: Int]])["nested"]!["k"] == 1)
+precondition(Set(inAppEvents[1].keys) == ["type", "campaignId"])
+precondition(inAppEvents[2]["type"] as? String == "dismissed" && inAppEvents[2]["reason"] as? String == "swipe")
+precondition(inAppEvents[3]["type"] as? String == "answered" && inAppEvents[3]["value"] as? Int == 4)
+precondition(inAppEvents[3]["comment"] as? String == "great")
+precondition(inAppEvents[4]["value"] as? String == "opt" && inAppEvents[4]["comment"] == nil)
+print("PASS iOS: in-app events keep nested payloads, Int and String answers, and omit absent keys")
+
+var inAppErrors = 0
+_ = stream(inAppFirst, "grovs/errors").onListen(withArguments: nil) { _ in inAppErrors += 1 }
+inAppEvents.removeAll()
+Grovs.delegate!.grovsDidEncounterError(.inAppDisplayFailed, message: "no view")
+precondition(inAppErrors == 0)
+precondition(inAppEvents.count == 1 && inAppEvents[0]["type"] as? String == "failed" && inAppEvents[0]["message"] as? String == "no view")
+Grovs.delegate!.grovsDidEncounterError(.authenticationFailed, message: "auth")
+precondition(inAppErrors == 1 && inAppEvents.count == 1)
+_ = stream(inAppFirst, "grovs/errors").onCancel(withArguments: nil)
+print("PASS iOS: a display failure reaches the in-app stream and not the error stream")
+
+_ = inAppStream(inAppFirst).onCancel(withArguments: nil)
+inAppDelegate.grovsDidShowInAppMessage(campaignID: "before-withdrawal")
+inAppFirst.instance!.setSDKEnabled(false)
+inAppDelegate.grovsDidShowInAppMessage(campaignID: "while-disabled")
+listenInApp(inAppFirst) { _ in preconditionFailure("Consent violation") }
+inAppFirst.instance!.setSDKEnabled(true)
+_ = inAppStream(inAppFirst).onCancel(withArguments: nil)
+listenInApp(inAppFirst) { _ in preconditionFailure("Stale in-app event revived") }
+_ = inAppStream(inAppFirst).onCancel(withArguments: nil)
+print("PASS iOS: disable clears pending in-app events and re-enabling does not revive them")
+
+inAppFirst.instance!.detachFromEngine(for: inAppFirst)
+weak var oldInAppInstance = inAppFirst.instance
+inAppFirst.instance = nil
+precondition(oldInAppInstance == nil)
+precondition(Grovs.inAppDelegate === inAppDelegate)
+inAppDelegate.grovsDidShowInAppMessage(campaignID: "between-engines")
+let inAppSecond = inAppEngine()
+var secondInApp: [String] = []
+listenInApp(inAppSecond) { secondInApp.append($0["campaignId"] as! String) }
+inAppDelegate.grovsDidShowInAppMessage(campaignID: "after-subscription")
+precondition(secondInApp == ["between-engines", "after-subscription"])
+inAppSecond.instance!.detachFromEngine(for: inAppSecond)
+print("PASS iOS: the in-app delegate and pending events survive engine destruction")
