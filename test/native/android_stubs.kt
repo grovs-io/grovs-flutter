@@ -170,5 +170,5 @@ object Grovs {
 class Task<T> { fun addOnSuccessListener(listener: (T) -> Unit): Task<T> = this }
 class FirebaseMessaging private constructor() {
     val token = Task<String>()
-    companion object { fun getInstance(): FirebaseMessaging = error("Firebase must not be used when absent") }
+    companion object { fun getInstance(): FirebaseMessaging = throw AssertionError("Firebase must not be used when absent") }
 }
