@@ -13,6 +13,8 @@ class Uri private constructor(val value: String, val scheme: String?, val host: 
 }
 class Intent(val action: String? = null, val data: Uri? = null) {
     companion object { const val ACTION_VIEW = "android.intent.action.VIEW" }
+    val extras = mutableMapOf<String, String>()
+    fun putExtra(name: String, value: String): Intent { extras[name] = value; return this }
 }
 open class Activity { var intent: Intent? = null }
 interface LifecycleObserver
@@ -156,4 +158,17 @@ object Grovs {
     fun discardInAppMessages(dismissCurrent: Boolean = false) { inAppCalls.add("discard $dismissCurrent") }
     fun setInAppExcludedScreens(screens: List<String>) { inAppCalls.add("screens $screens") }
     fun setInAppDebugLogging(enabled: Boolean) { inAppCalls.add("debug $enabled") }
+    fun isGrovsNotification(data: Map<String, String>) = !data["grovs_campaign_id"].isNullOrBlank()
+    val openedNotifications = mutableListOf<Map<String, String>>()
+    fun handleNotificationOpen(intent: Intent?): Boolean {
+        val extras = intent?.extras ?: return false
+        openedNotifications.add(extras.toMap())
+        return isGrovsNotification(extras)
+    }
+}
+// Declared outside com.google.firebase.messaging, so the fetcher finds no Firebase at runtime.
+class Task<T> { fun addOnSuccessListener(listener: (T) -> Unit): Task<T> = this }
+class FirebaseMessaging private constructor() {
+    val token = Task<String>()
+    companion object { fun getInstance(): FirebaseMessaging = error("Firebase must not be used when absent") }
 }

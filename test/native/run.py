@@ -10,6 +10,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 IOS = ROOT / "ios/grovs_flutter_plugin/Sources/grovs_flutter_plugin"
+ANDROID = ROOT / "android/src/main/kotlin/io/grovs/wrapper"
 CACHE = Path(os.environ.get("GRADLE_USER_HOME", Path.home() / ".gradle")) / "caches/modules-2/files-2.1"
 
 
@@ -71,10 +72,12 @@ def jar(artifact, version):
 
 
 def kotlin(out):
-    source = (ROOT / "android/src/main/kotlin/io/grovs/wrapper/GrovsPlugin.kt").read_text()
     # Compile the complete bridge; only platform imports are replaced by stubs.
-    source = re.sub(r"^(package io\..*|import (android|androidx|io)\..*)\n", "", source, flags=re.M)
-    (out / "GrovsPlugin.kt").write_text(source)
+    sources = []
+    for path in sorted(ANDROID.glob("*.kt")):
+        source = re.sub(r"^(package io\..*|import (android|androidx|io|com\.google)\..*)\n", "", path.read_text(), flags=re.M)
+        (out / path.name).write_text(source)
+        sources.append(out / path.name)
     (out / "Build.kt").write_text('package android.os\nobject Build { object VERSION { const val RELEASE = "test" } }\n')
     compiler = [jar(a, v) for a, v in [
         ("kotlin-compiler-embeddable", "2.0.21"), ("kotlin-stdlib", "2.0.21"),
@@ -88,7 +91,7 @@ def kotlin(out):
     classpath = os.pathsep.join(map(str, libraries))
     run("java", "-cp", os.pathsep.join(map(str, compiler)), "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
         "-nowarn", "-no-stdlib", "-no-reflect", "-classpath", classpath, "-d", out / "classes",
-        out / "GrovsPlugin.kt", out / "Build.kt", HERE / "android_stubs.kt", HERE / "android_tests.kt")
+        *sources, out / "Build.kt", HERE / "android_stubs.kt", HERE / "android_tests.kt")
     run("java", "-cp", str(out / "classes") + os.pathsep + classpath, "Android_testsKt")
 
 

@@ -38,6 +38,9 @@ fun main() = runBlocking {
     fun emit(id: String) = Grovs.listener!!(LinkDetails(id))
 
     val first = Engine()
+    check(Grovs.pushToken == null)
+    println("PASS Android: configure without Firebase leaves the push token unset")
+
     repeat(25) { emit("$it") }
     drain()
     first.listen()
@@ -234,6 +237,25 @@ fun main() = runBlocking {
     check(nextEngine.call("discardInAppMessages") == listOf("INVALID_ARGUMENT"))
     check(nextEngine.call("setInAppDebugLogging") == listOf("INVALID_ARGUMENT"))
     check(Grovs.inAppCalls.size == 6)
-    nextEngine.close()
     println("PASS Android: in-app control methods pass their arguments to the SDK and reject missing ones")
+
+    fun notification(data: Map<String, Any?>) = mapOf("data" to data)
+    check(nextEngine.call("isGrovsNotification", notification(mapOf("grovs_campaign_id" to "c1"))) == listOf(true))
+    check(nextEngine.call("isGrovsNotification", notification(mapOf("grovs_campaign_id" to " "))) == listOf(false))
+    check(nextEngine.call("isGrovsNotification", notification(emptyMap())) == listOf(false))
+    check(nextEngine.call("isGrovsNotification") == listOf("INVALID_ARGUMENT"))
+    check(nextEngine.call("isGrovsNotification", mapOf("data" to "c1")) == listOf("INVALID_ARGUMENT"))
+    println("PASS Android: isGrovsNotification checks the campaign id and rejects missing data")
+
+    Grovs.openedNotifications.clear()
+    val tap = notification(mapOf("grovs_campaign_id" to "c1", "n" to 4))
+    check(nextEngine.call("handleNotificationOpen", tap) == listOf(true))
+    check(Grovs.openedNotifications == listOf(mapOf("grovs_campaign_id" to "c1", "n" to "4"))) { "${Grovs.openedNotifications}" }
+    check(nextEngine.call("handleNotificationOpen") == listOf("INVALID_ARGUMENT"))
+    nextEngine.enabled(false)
+    check(nextEngine.call("handleNotificationOpen", tap) == listOf(false))
+    check(Grovs.openedNotifications.size == 1)
+    nextEngine.enabled(true)
+    nextEngine.close()
+    println("PASS Android: handleNotificationOpen passes the data as string extras and does nothing while disabled")
 }

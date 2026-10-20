@@ -200,7 +200,13 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             sdkEnabled
         )
         configured = true
+        if (sdkEnabled) FirebaseTokenFetcher.fetch { Grovs.pushToken = it }
     }
+
+    private fun notificationData(call: MethodCall): Map<String, String>? =
+        (call.argument<Any>("data") as? Map<*, *>)?.entries?.mapNotNull { (key, value) ->
+            if (key == null || value == null) null else key.toString() to value.toString()
+        }?.toMap()
 
     private fun setSDKEnabled(enabled: Boolean) {
         if (enabled == sdkEnabled) return
@@ -590,6 +596,35 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
                 Grovs.onNewIntent(Intent(Intent.ACTION_VIEW, uri), activity)
                 result.success(true)
+            }
+
+            "isGrovsNotification" -> {
+                val data = notificationData(call)
+
+                if (data == null) {
+                    result.error("INVALID_ARGUMENT", "data is required", null)
+                    return
+                }
+
+                result.success(Grovs.isGrovsNotification(data))
+            }
+
+            "handleNotificationOpen" -> {
+                val data = notificationData(call)
+
+                if (data == null) {
+                    result.error("INVALID_ARGUMENT", "data is required", null)
+                    return
+                }
+
+                if (!sdkEnabled) {
+                    result.success(false)
+                    return
+                }
+
+                val intent = Intent()
+                data.forEach { (key, value) -> intent.putExtra(key, value) }
+                result.success(Grovs.handleNotificationOpen(intent))
             }
 
             "pauseInAppMessages" -> {
