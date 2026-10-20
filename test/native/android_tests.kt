@@ -256,6 +256,16 @@ fun main() = runBlocking {
     check(nextEngine.call("handleNotificationOpen", tap) == listOf(false))
     check(Grovs.openedNotifications.size == 1)
     nextEngine.enabled(true)
-    nextEngine.close()
     println("PASS Android: handleNotificationOpen passes the data as string extras and does nothing while disabled")
+
+    var tokenFetches = 0
+    GrovsPlugin.fetchPushToken = { tokenFetches++ }
+    nextEngine.enabled(true)
+    check(tokenFetches == 0)
+    nextEngine.enabled(false)
+    check(tokenFetches == 0)
+    nextEngine.enabled(true)
+    check(tokenFetches == 1)
+    nextEngine.close()
+    println("PASS Android: turning the SDK on fetches the push token once")
 }

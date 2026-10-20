@@ -2,7 +2,8 @@
   xmlns:tools="http://schemas.android.com/tools"
   package="io.grovs.wrapper">
   <application>
-    <!-- Below the default priority, so firebase_messaging's service wins when the app uses it. -->
+    <!-- Below the default priority, so firebase_messaging's service wins when the app uses it.
+         The replace copies the native SDK's service declaration: recheck it when the native SDK is bumped. -->
     <service
       android:name="io.grovs.handlers.MessagingService"
       android:exported="false"

@@ -66,6 +66,10 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         private val attachedPlugins = Collections.newSetFromMap(WeakHashMap<GrovsPlugin, Boolean>())
         private var pendingIntent: Intent? = null
 
+        internal var fetchPushToken: ((String) -> Unit) -> Unit = FirebaseTokenFetcher::fetch
+
+        private fun refreshPushToken() = fetchPushToken { Grovs.pushToken = it }
+
         private fun handleActivityStart(activity: Activity) {
             if (sdkEnabled) {
                 pendingIntent?.let { activity.intent = it }
@@ -200,7 +204,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             sdkEnabled
         )
         configured = true
-        if (sdkEnabled) FirebaseTokenFetcher.fetch { Grovs.pushToken = it }
+        if (sdkEnabled) refreshPushToken()
     }
 
     private fun notificationData(call: MethodCall): Map<String, String>? =
@@ -220,6 +224,7 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
         }
         if (enabled) {
+            refreshPushToken()
             // Re-run intent handling so a launch link and first-open attribution
             // that were skipped while disabled are processed now.
             activityBinding?.activity?.let { handleActivityStart(it) }

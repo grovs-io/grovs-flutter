@@ -9,6 +9,8 @@ internal object FirebaseTokenFetcher {
             Class.forName("com.google.firebase.messaging.FirebaseMessaging")
         } catch (e: ClassNotFoundException) {
             return
+        } catch (e: LinkageError) {
+            return
         }
         try {
             FirebaseMessaging.getInstance().token.addOnSuccessListener { onToken(it) }
