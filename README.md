@@ -421,8 +421,6 @@ grovs.onInAppMessage.listen((event) {
 });
 ```
 
-Import the event types with `import 'package:grovs_flutter_plugin/models/grovs_in_app.dart';`.
-
 On Android, an event that happens while no Flutter engine is attached is dropped. On iOS it is kept for the next engine.
 
 ### Testing
@@ -462,7 +460,19 @@ Without this line, taps on Grovs pushes are not counted and Grovs pushes do not 
 
 **2. Token.** The plugin forwards the APNs token for you. You do not need to call `setPushToken` on iOS. If you do, it works, but it causes one extra attributes update.
 
-**3. Foreground pushes.** While the app is open, Grovs pushes show as a banner, in the list and with sound (alert and sound on iOS 13). Pushes from other providers are left to your own code.
+**3. Foreground pushes.** While the app is open, Grovs pushes show as a banner, in the list and with sound (alert and sound on iOS 13). Pushes from other providers are left to your own code. They also show while the SDK is disabled. This is display only, nothing is tracked.
+
+With `firebase_messaging` 16.x, this needs one more step. That version answers every notification before Grovs can, so nothing shows by default. Either upgrade to `firebase_messaging` 17 or newer, or call this once after Firebase starts:
+
+```dart
+await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+  alert: true,
+  badge: true,
+  sound: true,
+);
+```
+
+With 16.x this also shows other Firebase pushes while the app is open.
 
 **4. Images (optional).** To show a picture in the push, add a Notification Service Extension target to your Xcode project, then add this to the `Podfile`:
 
@@ -484,9 +494,14 @@ Use JPEG, PNG or GIF images. The iOS Simulator never runs the extension, so test
 
 ### Android
 
-**1. Token.** When Firebase is in your app, the plugin fetches the first FCM token for you. To keep up with refreshes, listen to `onTokenRefresh`:
+Android push needs Firebase Messaging in your app. Add `firebase_messaging`, or add `com.google.firebase:firebase-messaging` and the `google-services` plugin yourself. The Grovs SDK does not bring Firebase with it.
+
+**1. Token.** When Firebase is in your app, the plugin fetches the first FCM token for you, and again each time the SDK is turned on. You can also send it yourself. To keep up with refreshes, listen to `onTokenRefresh`:
 
 ```dart
+final token = await FirebaseMessaging.instance.getToken();
+if (token != null) grovs.setPushToken(token);
+
 FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
   grovs.setPushToken(newToken);
 });
@@ -502,9 +517,11 @@ FirebaseMessaging.onMessage.listen((message) async {
 });
 ```
 
+A notification you draw yourself does not carry the Grovs data, so its tap is not counted. In its tap handler, call `grovs.handleNotificationOpen(message.data)`.
+
 Without `firebase_messaging`, Grovs draws foreground pushes itself.
 
-**3. Taps.** Taps on Grovs pushes are counted without any code.
+**3. Taps.** Taps on notifications drawn by Grovs are counted without any code. For notifications you draw yourself, see step 2.
 
 ### Both platforms
 
@@ -517,7 +534,7 @@ grovs.onDeeplinkReceived.listen((details) {
 });
 ```
 
-`handleNotificationOpen(data)` counts a tap and opens the push's link. It is only for apps that cannot use the native tap handling above, and it must be called from a tap handler, never when a push is only delivered. Use one path, not both. On iOS, setting the delegate and also calling `handleNotificationOpen` counts every tap twice.
+`handleNotificationOpen(data)` counts a tap and opens the push's link. Use it when you draw the notification yourself (Android with `firebase_messaging`), or when the native tap handling cannot be used. It must be called from a tap handler, never when a push is only delivered. Use one path, not both. On iOS, setting the delegate and also calling `handleNotificationOpen` counts every tap twice.
 
 ## Revenue Tracking
 
