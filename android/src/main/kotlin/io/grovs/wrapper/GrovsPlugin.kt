@@ -19,6 +19,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import io.grovs.Grovs
+import io.grovs.GrovsInAppListener
 import io.grovs.model.CustomLinkRedirect
 import io.grovs.model.LogLevel
 import io.grovs.model.exceptions.GrovsException
@@ -43,14 +44,17 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var channel: MethodChannel? = null
     private var eventChannel: EventChannel? = null
     private var errorChannel: EventChannel? = null
+    private var inAppChannel: EventChannel? = null
     private var eventSink: EventChannel.EventSink? = null
     private var errorSink: EventChannel.EventSink? = null
+    private var inAppSink: EventChannel.EventSink? = null
     private var activityBinding: ActivityPluginBinding? = null
     private lateinit var coroutineScope: CoroutineScope
     private var newIntentListener: PluginRegistry.NewIntentListener? = null
     private var hostLifecycle: Lifecycle? = null
     private val pendingDeeplinks = mutableListOf<Map<String, Any?>>()
-    private val maxPendingDeeplinks = 20
+    private val pendingInAppEvents = mutableListOf<Map<String, Any?>>()
+    private val maxPendingEvents = 20
 
     companion object {
         // Native configure must run once per process, even when several Flutter engines attach.
@@ -68,6 +72,45 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 pendingIntent = null
             }
             Grovs.onStart(activity)
+        }
+
+        // The SDK holds a single in-app listener for the process, so it fans out to every engine.
+        // An event that arrives while no engine is attached is dropped, as deep links are.
+        private val inAppListener = object : GrovsInAppListener {
+            override fun onInAppMessageShown(campaignId: String) {
+                sendInApp(mapOf("type" to "shown", "campaignId" to campaignId))
+            }
+
+            override fun onInAppMessageClicked(campaignId: String, buttonId: String?, payload: Map<String, Any?>?) {
+                sendInApp(buildMap {
+                    put("type", "clicked")
+                    put("campaignId", campaignId)
+                    buttonId?.let { put("buttonId", it) }
+                    payload?.let { put("payload", it) }
+                })
+            }
+
+            override fun onInAppMessageDismissed(campaignId: String, reason: String) {
+                sendInApp(mapOf("type" to "dismissed", "campaignId" to campaignId, "reason" to reason))
+            }
+
+            override fun onInAppMessageAnswered(campaignId: String, value: Any, comment: String?) {
+                sendInApp(buildMap {
+                    put("type", "answered")
+                    put("campaignId", campaignId)
+                    put("value", value)
+                    comment?.let { put("comment", it) }
+                })
+            }
+
+            override fun onInAppMessageFailed(campaignId: String, message: String) {
+                sendInApp(mapOf("type" to "failed", "campaignId" to campaignId, "message" to message))
+            }
+        }
+
+        private fun sendInApp(event: Map<String, Any?>) {
+            val generation = consentGeneration
+            attachedPlugins.toList().forEach { it.deliverInApp(event, generation) }
         }
     }
 
@@ -101,6 +144,22 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
         })
 
+        inAppChannel = EventChannel(flutterPluginBinding.binaryMessenger, "grovs/inapp")
+        inAppChannel?.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                inAppSink = events
+                if (events == null) return
+                val pending = pendingInAppEvents.toList()
+                pendingInAppEvents.clear()
+                val generation = consentGeneration
+                pending.forEach { deliverInApp(it, generation) }
+            }
+
+            override fun onCancel(arguments: Any?) {
+                inAppSink = null
+            }
+        })
+
         errorChannel = EventChannel(flutterPluginBinding.binaryMessenger, "grovs/errors")
         errorChannel?.setStreamHandler(object : EventChannel.StreamHandler {
             override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
@@ -129,6 +188,8 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             ?.filter { it.isNotEmpty() }
         sdkEnabled = meta.getBoolean("grovs_enabled", true)
 
+        Grovs.setInAppListener(inAppListener)
+
         Grovs.configure(
             application,
             apiKey,
@@ -147,7 +208,10 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         sdkEnabled = enabled
         if (!enabled) {
             consentGeneration++
-            attachedPlugins.forEach { it.pendingDeeplinks.clear() }
+            attachedPlugins.forEach {
+                it.pendingDeeplinks.clear()
+                it.pendingInAppEvents.clear()
+            }
         }
         if (enabled) {
             // Re-run intent handling so a launch link and first-open attribution
@@ -175,16 +239,26 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
     }
 
-    private fun deliverDeeplink(event: Map<String, Any?>, generation: Long) {
+    private fun deliverDeeplink(event: Map<String, Any?>, generation: Long) =
+        deliver(event, generation, eventSink, pendingDeeplinks)
+
+    private fun deliverInApp(event: Map<String, Any?>, generation: Long) =
+        deliver(event, generation, inAppSink, pendingInAppEvents)
+
+    private fun deliver(
+        event: Map<String, Any?>,
+        generation: Long,
+        sink: EventChannel.EventSink?,
+        pending: MutableList<Map<String, Any?>>
+    ) {
         if (!sdkEnabled || generation != consentGeneration) return
-        val sink = eventSink
         if (sink != null) {
             sink.success(event)
             return
         }
-        pendingDeeplinks.add(event)
-        if (pendingDeeplinks.size > maxPendingDeeplinks) {
-            pendingDeeplinks.removeAt(0)
+        pending.add(event)
+        if (pending.size > maxPendingEvents) {
+            pending.removeAt(0)
         }
     }
 
@@ -518,6 +592,52 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 result.success(true)
             }
 
+            "pauseInAppMessages" -> {
+                Grovs.pauseInAppMessages()
+                result.success(null)
+            }
+
+            "resumeInAppMessages" -> {
+                Grovs.resumeInAppMessages()
+                result.success(null)
+            }
+
+            "discardInAppMessages" -> {
+                val dismissCurrent = call.argument<Boolean>("dismissCurrent")
+
+                if (dismissCurrent == null) {
+                    result.error("INVALID_ARGUMENT", "dismissCurrent is required", null)
+                    return
+                }
+
+                Grovs.discardInAppMessages(dismissCurrent)
+                result.success(null)
+            }
+
+            "setInAppExcludedScreens" -> {
+                val screens = call.argument<List<String>>("screens")
+
+                if (screens == null) {
+                    result.error("INVALID_ARGUMENT", "screens is required", null)
+                    return
+                }
+
+                Grovs.setInAppExcludedScreens(screens)
+                result.success(null)
+            }
+
+            "setInAppDebugLogging" -> {
+                val enabled = call.argument<Boolean>("enabled")
+
+                if (enabled == null) {
+                    result.error("INVALID_ARGUMENT", "enabled is required", null)
+                    return
+                }
+
+                Grovs.setInAppDebugLogging(enabled)
+                result.success(null)
+            }
+
             else -> {
                 result.notImplemented()
             }
@@ -528,16 +648,20 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         channel?.setMethodCallHandler(null)
         eventChannel?.setStreamHandler(null)
         errorChannel?.setStreamHandler(null)
+        inAppChannel?.setStreamHandler(null)
         // Removing stream handlers does not call onCancel.
         eventSink = null
         errorSink = null
+        inAppSink = null
         pendingDeeplinks.clear()
+        pendingInAppEvents.clear()
         detachActivity()
         coroutineScope.cancel()
         attachedPlugins.remove(this)
         channel = null
         eventChannel = null
         errorChannel = null
+        inAppChannel = null
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {

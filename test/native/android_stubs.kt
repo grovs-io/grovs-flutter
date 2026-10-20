@@ -112,6 +112,14 @@ data class InstantCompat(val epochMillis: Long) {
     companion object { fun ofEpochMilli(millis: Long) = InstantCompat(millis) }
 }
 class GrovsException(message: String) : Exception(message)
+interface GrovsInAppListener {
+    fun shouldShowInAppMessage(campaignId: String): Boolean = true
+    fun onInAppMessageShown(campaignId: String) {}
+    fun onInAppMessageClicked(campaignId: String, buttonId: String?, payload: Map<String, Any?>?) {}
+    fun onInAppMessageDismissed(campaignId: String, reason: String) {}
+    fun onInAppMessageAnswered(campaignId: String, value: Any, comment: String?) {}
+    fun onInAppMessageFailed(campaignId: String, message: String) {}
+}
 data class LinkDetails(val link: String?, val data: Any? = null, val tracking: Any? = null)
 object Grovs {
     var listener: ((LinkDetails) -> Unit)? = null
@@ -138,4 +146,14 @@ object Grovs {
     fun setGlobalTags(tags: List<String>?) {}
     fun trackScreenView(name: String, properties: Map<String, Any>?) {}
     fun setScreenAliases(aliases: Map<String, String>) {}
+    var inAppListener: GrovsInAppListener? = null
+        private set
+    var inAppListenerSets = 0
+    fun setInAppListener(listener: GrovsInAppListener?) { inAppListenerSets++; inAppListener = listener }
+    val inAppCalls = mutableListOf<String>()
+    fun pauseInAppMessages() { inAppCalls.add("pause") }
+    fun resumeInAppMessages() { inAppCalls.add("resume") }
+    fun discardInAppMessages(dismissCurrent: Boolean = false) { inAppCalls.add("discard $dismissCurrent") }
+    fun setInAppExcludedScreens(screens: List<String>) { inAppCalls.add("screens $screens") }
+    fun setInAppDebugLogging(enabled: Boolean) { inAppCalls.add("debug $enabled") }
 }

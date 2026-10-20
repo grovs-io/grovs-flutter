@@ -11,9 +11,17 @@ private class Engine(val plugin: GrovsPlugin = GrovsPlugin(), host: Activity = A
     val binding = FlutterPlugin.FlutterPluginBinding()
     val activity = ActivityPluginBinding(host)
     val received = mutableListOf<Any?>()
+    val inAppReceived = mutableListOf<Map<*, *>>()
     init { plugin.onAttachedToEngine(binding); plugin.onAttachedToActivity(activity) }
     val stream get() = binding.binaryMessenger.events.getValue("grovs/deeplinks").handler!!
     fun listen() = stream.onListen(null, EventChannel.EventSink { received.add(it) })
+    val inAppStream get() = binding.binaryMessenger.events.getValue("grovs/inapp").handler!!
+    fun listenInApp() = inAppStream.onListen(null, EventChannel.EventSink { inAppReceived.add(it as Map<*, *>) })
+    fun call(method: String, arguments: Map<String, Any?> = emptyMap()): List<Any?> {
+        val reply = Reply()
+        plugin.onMethodCall(MethodCall(method, arguments), reply)
+        return reply.values
+    }
     fun enabled(value: Boolean) {
         val reply = Reply()
         plugin.onMethodCall(MethodCall("setSDK", mapOf("enabled" to value)), reply)
@@ -78,7 +86,7 @@ fun main() = runBlocking {
     check(second.received.size == 1 && second.activity.listeners.isEmpty())
     check(second.binding.binaryMessenger.events.values.all { it.handler == null })
     check(second.binding.binaryMessenger.methods.values.all { it.handler == null })
-    for (name in listOf("channel", "eventChannel", "errorChannel", "eventSink", "errorSink", "activityBinding", "newIntentListener")) {
+    for (name in listOf("channel", "eventChannel", "errorChannel", "inAppChannel", "eventSink", "errorSink", "inAppSink", "activityBinding", "newIntentListener")) {
         check(GrovsPlugin::class.java.getDeclaredField(name).also { it.isAccessible = true }.get(second.plugin) == null)
     }
     val reused = Engine(second.plugin)
@@ -164,4 +172,68 @@ fun main() = runBlocking {
     finalEngine.close(); first.close()
     Dispatchers.resetMain()
     println("PASS Android: generation cancels on detach and works after reuse")
+
+    val inApp = Grovs.inAppListener!!
+    val shownEngine = Engine()
+    repeat(25) { inApp.onInAppMessageShown("$it") }
+    shownEngine.listenInApp()
+    check(shownEngine.inAppReceived.map { it["campaignId"] } == (5..24).map { "$it" })
+    check(shownEngine.inAppReceived.all { it == mapOf("type" to "shown", "campaignId" to it["campaignId"]) })
+    check(Grovs.inAppListener === inApp && Grovs.inAppListenerSets == 1)
+    println("PASS Android: in-app events are buffered with a bounded FIFO and replayed on listen")
+
+    val otherEngine = Engine()
+    otherEngine.listenInApp()
+    shownEngine.inAppReceived.clear()
+    val payload = mapOf("big" to 9_000_000_000L, "nested" to mapOf("k" to listOf(1, "two")))
+    inApp.onInAppMessageClicked("c", "b", payload)
+    inApp.onInAppMessageClicked("c", null, null)
+    inApp.onInAppMessageDismissed("c", "swipe")
+    inApp.onInAppMessageAnswered("c", 4, "great")
+    inApp.onInAppMessageAnswered("c", "opt", null)
+    inApp.onInAppMessageFailed("c", "no view")
+    val expected = listOf(
+        mapOf("type" to "clicked", "campaignId" to "c", "buttonId" to "b", "payload" to payload),
+        mapOf("type" to "clicked", "campaignId" to "c"),
+        mapOf("type" to "dismissed", "campaignId" to "c", "reason" to "swipe"),
+        mapOf("type" to "answered", "campaignId" to "c", "value" to 4, "comment" to "great"),
+        mapOf("type" to "answered", "campaignId" to "c", "value" to "opt"),
+        mapOf("type" to "failed", "campaignId" to "c", "message" to "no view"),
+    )
+    check(shownEngine.inAppReceived == expected) { "first engine: ${shownEngine.inAppReceived}" }
+    check(otherEngine.inAppReceived == expected) { "second engine: ${otherEngine.inAppReceived}" }
+    check(shownEngine.inAppReceived[0]["payload"] === payload)
+    println("PASS Android: every attached engine gets each in-app event with its payload unchanged and absent keys omitted")
+
+    shownEngine.inAppStream.onCancel(null); otherEngine.inAppStream.onCancel(null)
+    shownEngine.inAppReceived.clear(); otherEngine.inAppReceived.clear()
+    inApp.onInAppMessageShown("before-withdrawal")
+    otherEngine.enabled(false)
+    inApp.onInAppMessageShown("while-disabled")
+    otherEngine.enabled(true)
+    shownEngine.listenInApp(); otherEngine.listenInApp()
+    check(shownEngine.inAppReceived.isEmpty() && otherEngine.inAppReceived.isEmpty())
+    println("PASS Android: consent withdrawal clears in-app buffers across engines")
+
+    shownEngine.close(); otherEngine.close()
+    inApp.onInAppMessageShown("no-engine")
+    val nextEngine = Engine()
+    nextEngine.listenInApp()
+    check(nextEngine.inAppReceived.isEmpty())
+    println("PASS Android: an in-app event with no attached engine is dropped")
+
+    Grovs.inAppCalls.clear()
+    check(nextEngine.call("pauseInAppMessages") == listOf(null))
+    check(nextEngine.call("resumeInAppMessages") == listOf(null))
+    check(nextEngine.call("discardInAppMessages", mapOf("dismissCurrent" to true)) == listOf(null))
+    check(nextEngine.call("discardInAppMessages", mapOf("dismissCurrent" to false)) == listOf(null))
+    check(nextEngine.call("setInAppExcludedScreens", mapOf("screens" to listOf("Checkout", "Login"))) == listOf(null))
+    check(nextEngine.call("setInAppDebugLogging", mapOf("enabled" to true)) == listOf(null))
+    check(Grovs.inAppCalls == listOf("pause", "resume", "discard true", "discard false", "screens [Checkout, Login]", "debug true")) { "${Grovs.inAppCalls}" }
+    check(nextEngine.call("setInAppExcludedScreens") == listOf("INVALID_ARGUMENT"))
+    check(nextEngine.call("discardInAppMessages") == listOf("INVALID_ARGUMENT"))
+    check(nextEngine.call("setInAppDebugLogging") == listOf("INVALID_ARGUMENT"))
+    check(Grovs.inAppCalls.size == 6)
+    nextEngine.close()
+    println("PASS Android: in-app control methods pass their arguments to the SDK and reject missing ones")
 }
