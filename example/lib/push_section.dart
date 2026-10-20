@@ -57,12 +57,11 @@ class _PushSectionState extends State<PushSection> {
     try {
       if (defaultTargetPlatform == TargetPlatform.iOS) {
         final token = await messaging.getAPNSToken();
-        if (token == null) {
-          _setStatus('APNs token not available yet');
-          return;
-        }
-        await _grovs.setPushToken(token);
-        _setStatus('APNs token sent');
+        _setStatus(
+          token == null
+              ? 'APNs token not available yet'
+              : 'APNs token sent by the plugin',
+        );
       } else {
         final token = await messaging.getToken();
         if (token != null) await _grovs.setPushToken(token);
