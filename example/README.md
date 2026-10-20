@@ -26,6 +26,7 @@ To try push campaigns, add your own Firebase config:
 - iOS: `ios/Runner/GoogleService-Info.plist` (add it to the Runner target)
 
 Both files are git-ignored. On iOS, also enable the Push Notifications
-capability and use a real device. Call `Grovs().setPushToken` as the push
-section does; taps are handled natively, so the example does not call
+capability and use a real device. On Android, the push section calls
+`Grovs().setPushToken` with the FCM token; on iOS the plugin forwards the APNs
+token; taps are handled natively, so the example does not call
 `handleNotificationOpen`.
