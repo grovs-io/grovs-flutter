@@ -11,7 +11,7 @@ let package = Package(
         .library(name: "grovs-flutter-plugin", targets: ["grovs_flutter_plugin"])
     ],
     dependencies: [
-        .package(url: "https://github.com/grovs-io/grovs-iOS.git", from: "3.0.0")
+        .package(url: "https://github.com/grovs-io/grovs-iOS.git", from: "3.1.0")
     ],
     targets: [
         .target(

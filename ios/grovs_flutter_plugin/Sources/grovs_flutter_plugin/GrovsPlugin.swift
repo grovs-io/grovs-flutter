@@ -215,16 +215,6 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
             Grovs.pushToken = token
             result(nil)
             
-        case "numberOfUnreadMessages":
-            Grovs.numberOfUnreadMessages { count in
-                result(count)
-            }
-            
-        case "displayMessages":
-            Grovs.displayMessagesViewController() {
-                result(nil)
-            }
-            
         case "setUserIdentifier":
             guard let args = call.arguments as? [String: Any],
                   let identifier = args["identifier"] as? String else {
