@@ -63,7 +63,6 @@ class AppGraph {
     config = await NativeConfig.read();
     sdkEnabled.value = config.startEnabled;
     await _applySavedSettings();
-    await Push.start();
     log.add(
       LogType.sdk,
       LogState.ok,
@@ -85,6 +84,7 @@ class AppGraph {
     _inApp = InAppController();
     _home?.dispose();
     _home = HomeController();
+    unawaited(Push.start());
   }
 
   static void rerun(TestAction action) => unawaited(runner.run(action));

@@ -18,7 +18,7 @@ void main() {
     (tester) async {
       await grovs.startApp(tester);
       expect(find.text('Grovs Test'), findsOneWidget);
-      expect(find.text('SDK configured'), findsOneWidget);
+      expect(find.text('Push not configured'), findsOneWidget);
       await tester.tap(find.text('Links'));
       await tester.pumpAndSettle();
       expect(find.text('Links'), findsNWidgets(2));
