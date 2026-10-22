@@ -165,7 +165,8 @@ String? _string(Object? value) => value is String ? value : null;
 
 bool? _bool(Object? value) => value is bool ? value : null;
 
-int? _int(Object? value) => value is num ? value.toInt() : null;
+int? _int(Object? value) =>
+    value is num && value.isFinite ? value.toInt() : null;
 
 /// Platform channels deliver nested maps as `Map<Object?, Object?>`.
 Map<String, dynamic> _stringKeyed(Map<dynamic, dynamic> map) =>

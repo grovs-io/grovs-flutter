@@ -220,6 +220,16 @@ void main() {
       expect(link.raw['data'], 'text');
     });
 
+    test('non-finite numbers become null without throwing', () {
+      final link = GrovsLinkDetails.fromMap({
+        'id': double.nan,
+        'campaign_id': double.infinity,
+      });
+
+      expect(link.id, isNull);
+      expect(link.campaignId, isNull);
+    });
+
     test('redirect without a string url is no redirect', () {
       final link = GrovsLinkDetails.fromMap({
         'ios_custom_redirect': {'url': null},
