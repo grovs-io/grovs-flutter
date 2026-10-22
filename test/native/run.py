@@ -45,6 +45,7 @@ def swift(out):
         "    static func configureFromInfoPlist",
         "    static func deliver",
         "    static func handleUrl(arguments",
+        "    static func linkDetails(arguments",
         "    static func isGrovsNotification(arguments",
         "    static func handleNotificationOpen(arguments",
         "    private func setSDKEnabled",

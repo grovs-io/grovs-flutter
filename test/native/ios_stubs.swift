@@ -1,10 +1,12 @@
 import Foundation
 
 typealias FlutterEventSink = (Any?) -> Void
+typealias FlutterResult = (Any?) -> Void
 class FlutterError: NSObject {
     var code = ""
+    var message: String?
     override init() {}
-    init(code: String, message: String?, details: Any?) { self.code = code }
+    init(code: String, message: String?, details: Any?) { self.code = code; self.message = message }
 }
 protocol FlutterStreamHandler {
     func onListen(withArguments: Any?, eventSink: @escaping FlutterEventSink) -> FlutterError?
@@ -58,6 +60,12 @@ class Grovs {
         log.append("configure enabled=\(enabled)")
     }
     static func setSDK(enabled: Bool) { log.append("setSDK \(enabled)") }
+    static var linkDetailsPaths: [String] = []
+    static var linkDetailsReply: [String: Any]? = nil
+    static func linkDetails(path: String, completion: @escaping ([String: Any]?) -> Void) {
+        linkDetailsPaths.append(path)
+        completion(linkDetailsReply)
+    }
     static func handleAppDelegate(continue activity: NSUserActivity, restorationHandler: ([Any]) -> Void) -> Bool {
         log.append("link \(activity.webpageURL?.absoluteString ?? activity.activityType)")
         return activity.webpageURL != nil

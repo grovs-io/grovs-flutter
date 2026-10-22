@@ -120,6 +120,26 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
         return deliver(.url(url))
     }
 
+    static func linkDetails(arguments: Any?, result: @escaping FlutterResult) {
+        guard let args = arguments as? [String: Any],
+              let path = args["path"] as? String else {
+            result(FlutterError(code: "INVALID_ARGUMENT", message: "path is required", details: nil))
+            return
+        }
+        // The native SDK queues requests until it is enabled, which would leave the call hanging.
+        guard sdkEnabled else {
+            result(FlutterError(code: "SDK_DISABLED", message: "Grovs SDK is disabled. Call setSDK(true) first.", details: nil))
+            return
+        }
+        Grovs.linkDetails(path: path) { details in
+            if let details {
+                result(details)
+            } else {
+                result(FlutterError(code: "LINK_DETAILS_ERROR", message: "Failed to get link details.", details: nil))
+            }
+        }
+    }
+
     static func isGrovsNotification(arguments: Any?) -> Any {
         guard let userInfo = notificationData(arguments) else { return missingNotificationData }
         return Grovs.isGrovsNotification(userInfo: userInfo)
@@ -377,6 +397,9 @@ public class GrovsPlugin: NSObject, FlutterPlugin {
 
             setSDKEnabled(enabled)
             result(nil)
+
+        case "linkDetails":
+            GrovsPlugin.linkDetails(arguments: call.arguments, result: result)
 
         case "handleUrl":
             result(GrovsPlugin.handleUrl(arguments: call.arguments))

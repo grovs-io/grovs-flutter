@@ -263,3 +263,32 @@ inAppDelegate.grovsDidShowInAppMessage(campaignID: "after-subscription")
 precondition(secondInApp == ["between-engines", "after-subscription"])
 inAppSecond.instance!.detachFromEngine(for: inAppSecond)
 print("PASS iOS: the in-app delegate and pending events survive engine destruction")
+
+func linkDetails(_ arguments: Any?) -> Any? {
+    var reply: Any?
+    GrovsPlugin.linkDetails(arguments: arguments) { reply = $0 }
+    return reply
+}
+func errorCode(_ value: Any?) -> String? { (value as? FlutterError)?.code }
+
+let detailsEngine = engine()
+let detailsPlugin = detailsEngine.instance!
+for invalid in [nil, [String: Any](), ["path": 5]] as [Any?] {
+    precondition(errorCode(linkDetails(invalid)) == "INVALID_ARGUMENT", "accepted \(String(describing: invalid))")
+}
+precondition(Grovs.linkDetailsPaths.isEmpty)
+Grovs.linkDetailsReply = ["id": 3, "path": "abc"]
+precondition((linkDetails(["path": "abc"]) as? [String: Any])?["path"] as? String == "abc")
+Grovs.linkDetailsReply = nil
+let failed = linkDetails(["path": "missing"]) as? FlutterError
+precondition(failed?.code == "LINK_DETAILS_ERROR" && failed?.message == "Failed to get link details.")
+precondition(Grovs.linkDetailsPaths == ["abc", "missing"])
+detailsPlugin.setSDKEnabled(false)
+let disabled = linkDetails(["path": "abc"]) as? FlutterError
+precondition(disabled?.code == "SDK_DISABLED" && disabled?.message == "Grovs SDK is disabled. Call setSDK(true) first.")
+precondition(Grovs.linkDetailsPaths == ["abc", "missing"])
+detailsPlugin.setSDKEnabled(true)
+Grovs.linkDetailsReply = ["path": "abc"]
+precondition(linkDetails(["path": "abc"]) is [String: Any])
+detailsPlugin.detachFromEngine(for: detailsEngine)
+print("PASS iOS: linkDetails validates input, guards consent and maps the reply")
