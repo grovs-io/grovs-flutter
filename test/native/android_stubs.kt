@@ -141,6 +141,14 @@ object Grovs {
         generationStarted.complete(Unit)
         return generated.await()
     }
+    var details = CompletableDeferred<Map<String, Any>>(mapOf("id" to 3.0, "path" to "abc"))
+    var detailsStarted = CompletableDeferred<Unit>()
+    val detailsPaths = mutableListOf<String>()
+    suspend fun linkDetails(path: String): Map<String, Any> {
+        detailsPaths.add(path)
+        detailsStarted.complete(Unit)
+        return details.await()
+    }
     fun setDebug(level: LogLevel) {}
     fun logInAppPurchase(id: String) {}
     fun logCustomPurchase(type: PaymentEventType, price: Int, currency: String, product: String, startDate: InstantCompat? = null) {}

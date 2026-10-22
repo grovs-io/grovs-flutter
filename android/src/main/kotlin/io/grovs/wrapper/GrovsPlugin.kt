@@ -389,6 +389,29 @@ class GrovsPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     }
                 }
             }
+
+            "linkDetails" -> {
+                val path = call.argument<Any>("path") as? String
+                if (path == null) {
+                    result.error("INVALID_ARGUMENT", "path is required", null)
+                    return
+                }
+                if (!sdkEnabled) {
+                    result.error("SDK_DISABLED", "Grovs SDK is disabled. Call setSDK(true) first.", null)
+                    return
+                }
+
+                coroutineScope.launch {
+                    try {
+                        val details = withContext(Dispatchers.IO) { Grovs.linkDetails(path) }
+                        result.success(details)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        result.error("LINK_DETAILS_ERROR", e.message, null)
+                    }
+                }
+            }
             
             "setPushToken" -> {
                 val token = call.argument<String>("token")

@@ -268,4 +268,37 @@ fun main() = runBlocking {
     check(tokenFetches == 1)
     nextEngine.close()
     println("PASS Android: turning the SDK on fetches the push token once")
+
+    val detailsDispatcher = StandardTestDispatcher()
+    Dispatchers.setMain(detailsDispatcher)
+    suspend fun replyOf(engine: Engine, path: String): List<Any?> {
+        val reply = Reply()
+        engine.plugin.onMethodCall(MethodCall("linkDetails", mapOf("path" to path)), reply)
+        withTimeout(5000) { while (reply.values.isEmpty()) { detailsDispatcher.scheduler.runCurrent(); delay(1) } }
+        return reply.values
+    }
+    val detailsEngine = Engine()
+    check(detailsEngine.call("linkDetails") == listOf("INVALID_ARGUMENT"))
+    check(detailsEngine.call("linkDetails", mapOf("path" to 5)) == listOf("INVALID_ARGUMENT"))
+    check(Grovs.detailsPaths.isEmpty())
+    detailsEngine.enabled(false)
+    check(detailsEngine.call("linkDetails", mapOf("path" to "abc")) == listOf("SDK_DISABLED"))
+    check(Grovs.detailsPaths.isEmpty())
+    detailsEngine.enabled(true)
+    check(replyOf(detailsEngine, "abc") == listOf(mapOf("id" to 3.0, "path" to "abc")))
+    check(Grovs.detailsPaths == listOf("abc"))
+    Grovs.details = CompletableDeferred<Map<String, Any>>().apply { completeExceptionally(GrovsException("Invalid link path.")) }
+    check(replyOf(detailsEngine, "missing") == listOf("LINK_DETAILS_ERROR"))
+    Grovs.details = CompletableDeferred()
+    Grovs.detailsStarted = CompletableDeferred()
+    val detached = Reply()
+    detailsEngine.plugin.onMethodCall(MethodCall("linkDetails", mapOf("path" to "late")), detached)
+    detailsDispatcher.scheduler.runCurrent()
+    withTimeout(5000) { Grovs.detailsStarted.await() }
+    detailsEngine.close()
+    Grovs.details.complete(mapOf("path" to "late"))
+    repeat(20) { detailsDispatcher.scheduler.runCurrent(); delay(1) }
+    check(detached.values.isEmpty())
+    Dispatchers.resetMain()
+    println("PASS Android: linkDetails validates input, guards consent, maps errors and cancels on detach")
 }
