@@ -7,6 +7,7 @@ import '../../actions/export_log.dart';
 import '../../actions/log.dart';
 import '../../app_graph.dart';
 import '../../data/strings.dart';
+import '../../push.dart';
 import '../controls/basics.dart';
 import '../controls/chips.dart';
 import '../controls/clipboard.dart';
@@ -341,7 +342,12 @@ Future<void> _share(List<LogEntry> entries) async {
   final header =
       'Grovs test app log\nDevice: ${await _deviceLine()}\n'
       'Plugin: $pluginVersion · Project: $project';
-  final text = exportLog(entries, header, (t) => formatClock(t, seconds: true));
+  final text = exportLog(
+    entries,
+    header,
+    (t) => formatClock(t, seconds: true),
+    hide: Push.tokens,
+  );
   await SharePlus.instance.share(ShareParams(text: text));
 }
 

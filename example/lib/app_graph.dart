@@ -12,7 +12,9 @@ import 'data/key_value.dart';
 import 'data/settings_store.dart';
 import 'data/strings.dart';
 import 'native_config.dart';
+import 'push.dart';
 import 'ui/events/events_controller.dart';
+import 'ui/home/home_controller.dart';
 import 'ui/in_app/in_app_controller.dart';
 import 'ui/links/links_controller.dart';
 
@@ -37,10 +39,12 @@ class AppGraph {
   static LinksController? _links;
   static EventsController? _events;
   static InAppController? _inApp;
+  static HomeController? _home;
 
   static LinksController get links => _links!;
   static EventsController get events => _events!;
   static InAppController get inApp => _inApp!;
+  static HomeController get home => _home!;
 
   static final pushToken = ValueNotifier<String?>(null);
   static final sdkEnabled = ValueNotifier<bool>(true);
@@ -59,6 +63,7 @@ class AppGraph {
     config = await NativeConfig.read();
     sdkEnabled.value = config.startEnabled;
     await _applySavedSettings();
+    await Push.start();
     log.add(
       LogType.sdk,
       LogState.ok,
@@ -78,6 +83,8 @@ class AppGraph {
     _events = EventsController();
     _inApp?.dispose();
     _inApp = InAppController();
+    _home?.dispose();
+    _home = HomeController();
   }
 
   static void rerun(TestAction action) => unawaited(runner.run(action));
@@ -102,6 +109,9 @@ class AppGraph {
     _events = null;
     _inApp?.dispose();
     _inApp = null;
+    _home?.dispose();
+    _home = null;
+    Push.reset();
     config = NativeConfig.unknown;
     pushToken.value = null;
     sdkEnabled.value = true;

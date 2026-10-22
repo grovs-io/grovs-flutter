@@ -6,6 +6,7 @@ import '../data/strings.dart';
 import 'controls/basics.dart';
 import 'controls/sheet.dart';
 import 'events/events_screen.dart';
+import 'home/home_screen.dart';
 import 'in_app/in_app_screen.dart';
 import 'links/links_screen.dart';
 import 'logs/logs_panel.dart';
@@ -119,17 +120,7 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   Widget _tabBody(AppTab tab) => switch (tab) {
-    AppTab.home => _Placeholder(
-      'Grovs Test',
-      trailing: IconButton(
-        onPressed: _openSettings,
-        tooltip: 'Settings',
-        icon: Icon(
-          Icons.settings_outlined,
-          color: GrovsColors.of(context).textMuted,
-        ),
-      ),
-    ),
+    AppTab.home => HomeScreen(onOpenSettings: _openSettings),
     AppTab.links => const LinksScreen(),
     AppTab.events => const EventsScreen(),
     AppTab.inApp => const InAppScreen(),
@@ -280,31 +271,6 @@ class _TabBar extends StatelessWidget {
               NavigationDestination(icon: TabIcon(tab.icon), label: tab.title),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.title, {this.trailing});
-
-  final String title;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(child: ScreenTitle(title)),
-              ?trailing,
-            ],
-          ),
-        ],
       ),
     );
   }

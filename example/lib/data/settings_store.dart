@@ -37,6 +37,8 @@ class SettingsStore {
   final SharedPreferences _prefs;
   final String _deviceName;
 
+  String get deviceName => _deviceName;
+
   LinkForm get linkForm => decodeLinkForm(_prefs.getString(_kLinkForm));
   set linkForm(LinkForm v) => _put(_kLinkForm, encodeLinkForm(v));
 

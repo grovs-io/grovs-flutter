@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grovs_example/actions/log.dart';
 import 'package:grovs_example/app_graph.dart';
@@ -282,5 +285,160 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('excluded'), findsOneWidget);
     expect(grovs.lastArgs('trackScreenView')['screenName'], 'ExcludedScreen');
+  });
+
+  testWidgets('SDK switch calls setSDK and logs it', (tester) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('SDK enabled'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('setSDK')['enabled'], isFalse);
+    expect(find.text('SDK disabled'), findsOneWidget);
+  });
+
+  testWidgets('a failing setSDK is logged and the switch turns back', (
+    tester,
+  ) async {
+    grovs.answers['setSDK'] = (_) async => throw PlatformException(
+      code: 'consent_failed',
+      message: 'Could not update consent',
+    );
+    await grovs.startApp(tester);
+    await tester.tap(find.text('SDK enabled'));
+    await tester.pumpAndSettle();
+    final entry = AppGraph.log.entries.first;
+    expect(entry.title, 'SDK disabled');
+    expect(entry.state, LogState.error);
+    expect(entry.detail, contains('Could not update consent'));
+    expect(AppGraph.sdkEnabled.value, isTrue);
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a pending setSDK completes safely after Home is gone', (
+    tester,
+  ) async {
+    final pending = Completer<Object?>();
+    grovs.answers['setSDK'] = (_) => pending.future;
+    await grovs.startApp(tester);
+    await tester.tap(find.text('SDK enabled'));
+    await tester.pump();
+    expect(AppGraph.sdkEnabled.value, isFalse);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    pending.complete(null);
+    await tester.pumpAndSettle();
+    expect(AppGraph.log.entries.first.title, 'SDK disabled');
+    expect(AppGraph.log.entries.first.state, LogState.ok);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('identity save sends identifier and attributes', (tester) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('qa_user_1'));
+    await tester.tap(find.text('qa_user_1'));
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('setUserIdentifier')['identifier'], 'qa_user_1');
+  });
+
+  testWidgets('saving no identifier only sends attributes and warns', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    final before = grovs.methods.length;
+    await tester.tap(find.text('Change'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('None'));
+    await tester.tap(find.text('None'));
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(grovs.methods.skip(before), ['setUserAttributes']);
+    final entry = AppGraph.log.entries.first;
+    expect(entry.state, LogState.warning);
+    expect(entry.detail, contains('the plugin cannot clear an identifier'));
+    expect(find.text('None'), findsOneWidget);
+  });
+
+  testWidgets('without Firebase files push shows Not configured', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    expect(find.text('Not configured'), findsOneWidget);
+  });
+
+  testWidgets('quick action Generate link runs with saved values', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.ensureVisible(find.text('Generate link'));
+    await tester.tap(find.text('Generate link'));
+    await tester.pumpAndSettle();
+    expect(grovs.methods, contains('generateLink'));
+  });
+
+  void mockClipboard(WidgetTester tester, String? text) {
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async =>
+          call.method == 'Clipboard.getData' ? {'text': text} : null,
+    );
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+  }
+
+  testWidgets('Open clipboard without a link says so', (tester) async {
+    await grovs.startApp(tester);
+    mockClipboard(tester, 'hello');
+    await tester.ensureVisible(find.text('Open clipboard'));
+    await tester.tap(find.text('Open clipboard'));
+    await tester.pump();
+    expect(find.text('Clipboard has no link'), findsOneWidget);
+    expect(grovs.methods, isNot(contains('handleUrl')));
+    await tester.pumpAndSettle(const Duration(seconds: 3));
+  });
+
+  testWidgets('Open clipboard opens a copied link in the app', (tester) async {
+    await grovs.startApp(tester);
+    mockClipboard(tester, ' https://test.sqd.link/abc ');
+    await tester.ensureVisible(find.text('Open clipboard'));
+    await tester.tap(find.text('Open clipboard'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('handleUrl')['url'], 'https://test.sqd.link/abc');
+  });
+
+  testWidgets('holding Track opens the event form and tracks from it', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.ensureVisible(find.text('Track demo_tapped'));
+    await tester.longPress(find.text('Track demo_tapped'));
+    await tester.pumpAndSettle();
+    expect(find.text('Track event'), findsOneWidget);
+    await tester.tap(find.text('Save and track'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('track')['name'], 'demo_tapped');
+    expect(find.text('Track event'), findsNothing);
+  });
+
+  testWidgets('Opened from shows the last link and opens its log entry', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    expect(find.text('Not opened from a link yet'), findsOneWidget);
+    await grovs.emitDeeplink({'link': 'https://test.sqd.link/abc'});
+    await tester.pumpAndSettle();
+    expect(find.text('just now'), findsOneWidget);
+    expect(find.text('received'), findsOneWidget);
+    await tester.tap(find.text('https://test.sqd.link/abc'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('onDeeplinkReceived('), findsOneWidget);
+    AppGraph.closePanel();
+    await tester.pumpAndSettle();
   });
 }

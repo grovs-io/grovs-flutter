@@ -23,6 +23,9 @@ class FakeGrovs {
   final GrovsPlatform _originalPlatform;
   final calls = <MethodCall>[];
 
+  /// Replaces the default answer for a method, for example to fail or hang.
+  final answers = <String, Future<Object?> Function(MethodCall)>{};
+
   List<String> get methods => [for (final call in calls) call.method];
 
   Map<String, dynamic> lastArgs(String method) {
@@ -62,6 +65,8 @@ class FakeGrovs {
 
   Future<Object?> _answer(MethodCall call) async {
     calls.add(call);
+    final answer = answers[call.method];
+    if (answer != null) return answer(call);
     return switch (call.method) {
       'generateLink' => 'https://test.sqd.link/abc',
       'linkDetails' => {
