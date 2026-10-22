@@ -132,7 +132,7 @@ class Help {
     'For purchases made with Google Play Billing. Paste the purchase\'s originalJson and the SDK sends it to Grovs to log the purchase (Grovs.logInAppPurchase).',
   );
   static const _storeKitPurchase = Info(
-    'StoreKit transaction',
+    'App Store transaction ID',
     'For purchases made with StoreKit. Paste the transaction id and the SDK sends it to Grovs to log the purchase (logInAppPurchase).',
   );
 
