@@ -34,6 +34,11 @@ abstract class GrovsPlatform extends PlatformInterface {
     throw UnimplementedError('generateLink() has not been implemented.');
   }
 
+  /// Fetch the details of the Grovs link with the given path
+  Future<GrovsLinkDetails> linkDetails(String path) {
+    throw UnimplementedError('linkDetails() has not been implemented.');
+  }
+
   /// Enable or disable the native SDK.
   Future<void> setSDK(bool enabled) {
     throw UnimplementedError('setSDK() has not been implemented.');

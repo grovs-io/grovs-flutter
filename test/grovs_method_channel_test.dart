@@ -453,4 +453,75 @@ void main() {
       );
     });
   }
+
+  group('linkDetails', () {
+    void reply(Future<Object?> Function(MethodCall call) handler) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, handler);
+    }
+
+    test('sends the path and parses the reply', () async {
+      MethodCall? captured;
+      reply((call) async {
+        captured = call;
+        return {'id': 1.0, 'path': 'abc123'};
+      });
+
+      final link = await platform.linkDetails('abc123');
+
+      expect(captured?.method, 'linkDetails');
+      expect(captured?.arguments, {'path': 'abc123'});
+      expect(link.id, 1);
+      expect(link.path, 'abc123');
+    });
+
+    test('sends the path unchanged', () async {
+      MethodCall? captured;
+      reply((call) async {
+        captured = call;
+        return <String, Object?>{};
+      });
+
+      await platform.linkDetails('/abc123 ');
+
+      expect(captured?.arguments, {'path': '/abc123 '});
+    });
+
+    test('maps platform errors', () async {
+      reply((call) async {
+        throw PlatformException(
+          code: 'SDK_DISABLED',
+          message: 'Grovs SDK is disabled. Call setSDK(true) first.',
+        );
+      });
+
+      expect(
+        platform.linkDetails('abc123'),
+        throwsA(
+          isA<GrovsException>()
+              .having((e) => e.code, 'code', 'SDK_DISABLED')
+              .having(
+                (e) => e.message,
+                'message',
+                'Grovs SDK is disabled. Call setSDK(true) first.',
+              ),
+        ),
+      );
+    });
+
+    test('null reply is an error', () async {
+      reply((call) async => null);
+
+      expect(
+        platform.linkDetails('abc123'),
+        throwsA(
+          isA<GrovsException>().having(
+            (e) => e.code,
+            'code',
+            'LINK_DETAILS_ERROR',
+          ),
+        ),
+      );
+    });
+  });
 }

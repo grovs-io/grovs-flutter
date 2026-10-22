@@ -62,6 +62,29 @@ class Grovs {
     return GrovsPlatform.instance.generateLink(params);
   }
 
+  /// Fetch the details of a Grovs link
+  ///
+  /// [path] is the last part of a Grovs link, for example `abc123` for
+  /// `https://yourapp.sqd.link/abc123`. Pass the path only, not the full URL.
+  ///
+  /// Throws [GrovsException] with one of these codes:
+  /// - `INVALID_ARGUMENT` when [path] is empty
+  /// - `SDK_DISABLED` while the SDK is disabled with [setSDK]
+  /// - `LINK_DETAILS_ERROR` when the link is not found or the request fails
+  ///
+  /// Example:
+  /// ```dart
+  /// final details = await Grovs().linkDetails('abc123');
+  /// print(details.title);
+  /// print(details.data);
+  /// ```
+  Future<GrovsLinkDetails> linkDetails(String path) async {
+    if (path.trim().isEmpty) {
+      throw GrovsException('path is required', code: 'INVALID_ARGUMENT');
+    }
+    return GrovsPlatform.instance.linkDetails(path);
+  }
+
   /// Enable or disable the SDK at runtime.
   ///
   /// While disabled, the SDK does not authenticate, track events, access the

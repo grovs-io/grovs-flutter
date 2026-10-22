@@ -55,6 +55,28 @@ class MethodChannelGrovs extends GrovsPlatform {
   }
 
   @override
+  Future<GrovsLinkDetails> linkDetails(String path) async {
+    try {
+      final result = await methodChannel.invokeMethod<Map<Object?, Object?>>(
+        'linkDetails',
+        {'path': path},
+      );
+      if (result == null) {
+        throw GrovsException(
+          'Failed to get link details',
+          code: 'LINK_DETAILS_ERROR',
+        );
+      }
+      return GrovsLinkDetails.fromMap(result);
+    } on PlatformException catch (e) {
+      throw GrovsException(
+        e.message ?? 'Failed to get link details',
+        code: e.code,
+      );
+    }
+  }
+
+  @override
   Future<void> setSDK(bool enabled) async {
     try {
       await methodChannel.invokeMethod('setSDK', {'enabled': enabled});

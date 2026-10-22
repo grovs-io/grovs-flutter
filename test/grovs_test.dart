@@ -41,6 +41,14 @@ class MockGrovsPlatform
   @override
   Stream<GrovsError> get onError => errors;
 
+  final linkDetailsPaths = <String>[];
+
+  @override
+  Future<GrovsLinkDetails> linkDetails(String path) async {
+    linkDetailsPaths.add(path);
+    return GrovsLinkDetails.fromMap({'path': path});
+  }
+
   final inAppCalls = <String>[];
   final inAppEvents = const Stream<InAppMessageEvent>.empty();
 
@@ -238,4 +246,31 @@ void main() {
     expect(Grovs.screenAliases, {'/home': 'Home'});
     expect(() => Grovs.screenAliases['x'] = 'y', throwsUnsupportedError);
   });
+
+  test('linkDetails forwards the path', () async {
+    final fakePlatform = MockGrovsPlatform();
+    GrovsPlatform.instance = fakePlatform;
+
+    final link = await Grovs().linkDetails('abc123');
+
+    expect(link.path, 'abc123');
+    expect(fakePlatform.linkDetailsPaths, ['abc123']);
+  });
+
+  for (final path in ['', '   ']) {
+    test('linkDetails rejects the empty path "$path"', () async {
+      final fakePlatform = MockGrovsPlatform();
+      GrovsPlatform.instance = fakePlatform;
+
+      await expectLater(
+        Grovs().linkDetails(path),
+        throwsA(
+          isA<GrovsException>()
+              .having((e) => e.code, 'code', 'INVALID_ARGUMENT')
+              .having((e) => e.message, 'message', 'path is required'),
+        ),
+      );
+      expect(fakePlatform.linkDetailsPaths, isEmpty);
+    });
+  }
 }
