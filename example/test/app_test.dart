@@ -207,4 +207,38 @@ void main() {
     expect(find.text('Copy link'), findsOneWidget);
     expect(find.text('Copy adb'), findsOneWidget);
   });
+
+  testWidgets('a reserved event name blocks Track and offers Send anyway', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Events'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'install');
+    await tester.pump();
+    expect(find.text('"install" is reserved by the SDK'), findsWidgets);
+    await tester.tap(find.text('Send anyway'));
+    await tester.pumpAndSettle();
+    expect(grovs.methods.where((m) => m == 'track'), isNotEmpty);
+    expect(grovs.lastArgs('track')['name'], 'install');
+  });
+
+  testWidgets('Track sends the saved sample event', (tester) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Events'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Track').first);
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('track')['name'], 'demo_tapped');
+  });
+
+  testWidgets('the purchase button logs the sample purchase', (tester) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Events'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.textContaining('Log \$4.99'));
+    await tester.tap(find.textContaining('Log \$4.99'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('logCustomPurchase')['priceInCents'], 499);
+  });
 }
