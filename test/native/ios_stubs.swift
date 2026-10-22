@@ -103,9 +103,11 @@ class UIScene {
     class ConnectionOptions {
         let userActivities: Set<NSUserActivity>
         let urlContexts: Set<UIOpenURLContext>
-        init(userActivities: Set<NSUserActivity> = [], urlContexts: Set<UIOpenURLContext> = []) {
+        let notificationResponse: UNNotificationResponse?
+        init(userActivities: Set<NSUserActivity> = [], urlContexts: Set<UIOpenURLContext> = [], notificationResponse: UNNotificationResponse? = nil) {
             self.userActivities = userActivities
             self.urlContexts = urlContexts
+            self.notificationResponse = notificationResponse
         }
     }
 }
@@ -117,18 +119,26 @@ class UNNotificationContent {
     init(userInfo: [AnyHashable: Any]) { self.userInfo = userInfo }
 }
 class UNNotificationRequest {
+    let identifier: String
     let content: UNNotificationContent
-    init(content: UNNotificationContent) { self.content = content }
+    init(identifier: String, content: UNNotificationContent) {
+        self.identifier = identifier
+        self.content = content
+    }
 }
 class UNNotification {
     let request: UNNotificationRequest
-    init(userInfo: [AnyHashable: Any]) { request = UNNotificationRequest(content: UNNotificationContent(userInfo: userInfo)) }
+    let date: Date
+    init(userInfo: [AnyHashable: Any], identifier: String = UUID().uuidString, date: Date = Date()) {
+        request = UNNotificationRequest(identifier: identifier, content: UNNotificationContent(userInfo: userInfo))
+        self.date = date
+    }
 }
 class UNNotificationResponse {
     let notification: UNNotification
     let actionIdentifier: String
-    init(userInfo: [AnyHashable: Any], actionIdentifier: String = UNNotificationDefaultActionIdentifier) {
-        notification = UNNotification(userInfo: userInfo)
+    init(userInfo: [AnyHashable: Any], actionIdentifier: String = UNNotificationDefaultActionIdentifier, identifier: String = UUID().uuidString, date: Date = Date()) {
+        notification = UNNotification(userInfo: userInfo, identifier: identifier, date: date)
         self.actionIdentifier = actionIdentifier
     }
 }

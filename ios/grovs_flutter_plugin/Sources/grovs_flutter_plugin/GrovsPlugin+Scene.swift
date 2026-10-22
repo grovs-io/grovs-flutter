@@ -18,6 +18,9 @@ extension GrovsPlugin: FlutterSceneLifeCycleDelegate {
         // Some hosts never forward the app launch event to plugins in scene apps.
         GrovsPlugin.configureFromInfoPlist()
         guard let connectionOptions else { return false }
+        if let response = connectionOptions.notificationResponse {
+            GrovsPlugin.openNotification(response)
+        }
         if let activity = connectionOptions.userActivities.first(where: { $0.webpageURL != nil }) {
             _ = GrovsPlugin.deliver(.userActivity(activity))
         } else if let url = connectionOptions.urlContexts.first?.url {

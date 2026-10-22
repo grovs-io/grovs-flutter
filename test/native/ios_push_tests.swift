@@ -65,3 +65,41 @@ precondition(sdkCalls("handleNotification").isEmpty)
 plugin.setSDKEnabled(true)
 precondition(sdkCalls("handleNotification").isEmpty)
 print("PASS iOS push: taps while disabled complete without reaching the SDK and are not replayed")
+
+let secondRegistrar = FlutterPluginRegistrar()
+GrovsPlugin.register(with: secondRegistrar)
+let secondPlugin = secondRegistrar.instance!
+Grovs.log = []
+let sharedTap = UNNotificationResponse(userInfo: grovsPush)
+var sharedCompletions = 0
+plugin.userNotificationCenter(UNUserNotificationCenter(), didReceive: sharedTap) { sharedCompletions += 1 }
+secondPlugin.userNotificationCenter(UNUserNotificationCenter(), didReceive: sharedTap) { sharedCompletions += 1 }
+precondition(sdkCalls("handleNotificationResponse").count == 1 && sharedCompletions == 1)
+let sharedPush = UNNotification(userInfo: grovsPush)
+var sharedOptions = 0
+plugin.userNotificationCenter(UNUserNotificationCenter(), willPresent: sharedPush) { _ in sharedOptions += 1 }
+secondPlugin.userNotificationCenter(UNUserNotificationCenter(), willPresent: sharedPush) { _ in sharedOptions += 1 }
+precondition(sharedOptions == 1)
+print("PASS iOS push: a callback repeated for every engine is handled and completed once")
+
+Grovs.log = []
+let launchDate = Date()
+let launchTap = UNNotificationResponse(userInfo: grovsPush, identifier: "launch", date: launchDate)
+_ = plugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(notificationResponse: launchTap))
+_ = secondPlugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(notificationResponse: launchTap))
+precondition(sdkCalls("handleNotificationResponse").count == 1)
+var launchCompletions = 0
+plugin.userNotificationCenter(UNUserNotificationCenter(), didReceive: UNNotificationResponse(userInfo: grovsPush, identifier: "launch", date: launchDate)) {
+    launchCompletions += 1
+}
+precondition(sdkCalls("handleNotificationResponse").count == 1 && launchCompletions == 1)
+_ = plugin.scene(UIScene(), willConnectTo: UISceneSession(), options: UIScene.ConnectionOptions(notificationResponse: UNNotificationResponse(userInfo: otherPush)))
+precondition(sdkCalls("handleNotificationResponse").count == 1)
+print("PASS iOS push: a launch tap from the scene is reported once, and a later didReceive for it only completes")
+
+Grovs.log = []
+precondition(tap(grovsPush) == 1 && tap(grovsPush) == 1)
+let resent = UNNotificationResponse(userInfo: grovsPush, identifier: "launch", date: launchDate.addingTimeInterval(60))
+plugin.userNotificationCenter(UNUserNotificationCenter(), didReceive: resent) {}
+precondition(sdkCalls("handleNotificationResponse").count == 3)
+print("PASS iOS push: separate deliveries are each reported, even with the same identifier")
