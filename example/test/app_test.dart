@@ -133,4 +133,78 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Grovs Test'), findsNothing);
   });
+
+  testWidgets('Generate link shows the result card and a log entry', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Links'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Generate link'));
+    await tester.pumpAndSettle();
+    expect(find.text('https://test.sqd.link/abc'), findsOneWidget);
+    expect(find.text('QR'), findsOneWidget);
+    expect(AppGraph.log.entries.first.title, 'Generate link');
+  });
+
+  testWidgets('Inspect on the result card opens the new inspect entry', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Links'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Generate link'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inspect'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('linkDetails')['path'], 'abc');
+    expect(find.textContaining('linkDetails('), findsOneWidget);
+    AppGraph.closePanel();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Inspect link from a log detail shows the inspect entry', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await grovs.emitDeeplink({'link': 'https://test.sqd.link/abc'});
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Open logs'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Opened from link').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inspect link'));
+    await tester.pumpAndSettle();
+    expect(find.text('Inspect link'), findsNothing);
+    expect(find.textContaining('linkDetails('), findsOneWidget);
+    AppGraph.closePanel();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('closing the panel from outside closes the sheet', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.byTooltip('Open logs'));
+    await tester.pumpAndSettle();
+    expect(find.text('Logs'), findsOneWidget);
+    AppGraph.closePanel();
+    await tester.pumpAndSettle();
+    expect(find.text('Logs'), findsNothing);
+  });
+
+  testWidgets('the QR sheet shows the link and the copy actions', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('Links'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Generate link'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('QR'));
+    await tester.pumpAndSettle();
+    expect(find.text('Scan on another phone'), findsOneWidget);
+    expect(find.text('Copy link'), findsOneWidget);
+    expect(find.text('Copy adb'), findsOneWidget);
+  });
 }

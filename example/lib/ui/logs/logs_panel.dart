@@ -29,6 +29,34 @@ class LogsPanel extends StatefulWidget {
 
 class _LogsPanelState extends State<LogsPanel> {
   late int? _selectedId = widget.entryId;
+  late bool _openedOnEntry = widget.entryId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    AppGraph.panel.addListener(_onPanel);
+  }
+
+  @override
+  void dispose() {
+    AppGraph.panel.removeListener(_onPanel);
+    super.dispose();
+  }
+
+  /// The panel can be asked to show another entry, or to close, while open.
+  void _onPanel() {
+    final panel = AppGraph.panel.value;
+    if (!panel.open) {
+      if (ModalRoute.of(context)?.isActive ?? false) {
+        Navigator.of(context).pop();
+      }
+    } else if (panel.entryId != null && panel.entryId != _selectedId) {
+      setState(() {
+        _selectedId = panel.entryId;
+        _openedOnEntry = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +65,7 @@ class _LogsPanelState extends State<LogsPanel> {
       builder: (context, _) {
         final entries = AppGraph.log.entries;
         final selected = entries.where((e) => e.id == _selectedId).firstOrNull;
-        final backToList = selected != null && widget.entryId == null;
+        final backToList = selected != null && !_openedOnEntry;
         return PopScope(
           canPop: !backToList,
           onPopInvokedWithResult: (didPop, _) {
@@ -219,6 +247,7 @@ class _LogDetail extends StatelessWidget {
     final c = GrovsColors.of(context);
     final text = entry.code.trim().isEmpty ? entry.detail : entry.code;
     final action = entry.action;
+    final link = entry.link;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -285,6 +314,16 @@ class _LogDetail extends StatelessWidget {
                   child: AppButton(
                     'Run again',
                     () => AppGraph.rerun(action),
+                    style: ButtonStyleKind.outline,
+                  ),
+                ),
+              ],
+              if (link != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: AppButton(
+                    'Inspect link',
+                    () => AppGraph.links.inspect(link),
                     style: ButtonStyleKind.outline,
                   ),
                 ),

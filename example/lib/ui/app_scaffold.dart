@@ -5,6 +5,7 @@ import '../app_graph.dart';
 import '../data/strings.dart';
 import 'controls/basics.dart';
 import 'controls/sheet.dart';
+import 'links/links_screen.dart';
 import 'logs/logs_panel.dart';
 import 'tab_icons.dart';
 import 'theme.dart';
@@ -127,6 +128,7 @@ class _AppScaffoldState extends State<AppScaffold>
         ),
       ),
     ),
+    AppTab.links => const LinksScreen(),
     _ => _Placeholder(tab.title),
   };
 }

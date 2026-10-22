@@ -12,6 +12,7 @@ import 'data/key_value.dart';
 import 'data/settings_store.dart';
 import 'data/strings.dart';
 import 'native_config.dart';
+import 'ui/links/links_controller.dart';
 
 const pluginVersion = '3.1.1';
 const androidPackage = 'io.grovs.example';
@@ -31,6 +32,9 @@ class AppGraph {
   static late TestLog log;
   static late TestRunner runner;
   static NativeConfig config = NativeConfig.unknown;
+  static LinksController? _links;
+
+  static LinksController get links => _links!;
 
   static final pushToken = ValueNotifier<String?>(null);
   static final sdkEnabled = ValueNotifier<bool>(true);
@@ -62,6 +66,8 @@ class AppGraph {
         ('enabled', config.startEnabled),
       ]),
     );
+    _links?.dispose();
+    _links = LinksController();
   }
 
   static void rerun(TestAction action) => unawaited(runner.run(action));
@@ -80,6 +86,8 @@ class AppGraph {
   @visibleForTesting
   static void reset() {
     _cancelSubscriptions();
+    _links?.dispose();
+    _links = null;
     config = NativeConfig.unknown;
     pushToken.value = null;
     sdkEnabled.value = true;
