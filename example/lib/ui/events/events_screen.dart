@@ -171,14 +171,6 @@ class _AliasesEditorState extends State<_AliasesEditor> {
   late List<KeyValue> _draft = widget.events.aliases;
 
   @override
-  void didUpdateWidget(_AliasesEditor old) {
-    super.didUpdateWidget(old);
-    if (!listEquals(old.events.aliases, widget.events.aliases)) {
-      _draft = widget.events.aliases;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

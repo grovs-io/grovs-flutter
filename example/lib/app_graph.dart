@@ -52,6 +52,11 @@ class AppGraph {
 
   static final _subscriptions = <StreamSubscription<Object?>>[];
 
+  static String get _apiKeyLocation =>
+      defaultTargetPlatform == TargetPlatform.iOS
+      ? 'GrovsApiKey in Info.plist'
+      : 'grovs_api_key in AndroidManifest.xml';
+
   static Future<void> init({String? deviceName}) async {
     _cancelSubscriptions();
     store = await SettingsStore.load(
@@ -63,11 +68,14 @@ class AppGraph {
     config = await NativeConfig.read();
     sdkEnabled.value = config.startEnabled;
     await _applySavedSettings();
+    final configured = config.apiKey.isNotEmpty;
     log.add(
       LogType.sdk,
-      LogState.ok,
-      'SDK configured',
-      detail: '${config.useTestEnvironment ? 'test' : 'prod'} · natively',
+      configured ? LogState.ok : LogState.warning,
+      configured ? 'SDK configured' : 'SDK not configured',
+      detail: configured
+          ? '${config.useTestEnvironment ? 'test' : 'prod'} · natively'
+          : 'Set the API key: $_apiKeyLocation',
       code: callCode('configure', [
         ('apiKey', middleEllipsis(config.apiKey)),
         ('useTestEnvironment', config.useTestEnvironment),

@@ -36,7 +36,7 @@ another project:
 - iOS: `ios/Runner/Info.plist`, the `Grovs*` keys (`GrovsApiKey`,
   `GrovsUseTestEnvironment`, `GrovsEnabled`).
 
-The link domains are set in the same two files.
+The link domains are set in different places. On Android they are the intent filter hosts in `android/app/src/main/AndroidManifest.xml`. On iOS they are the associated domains in `ios/Runner/Runner.entitlements`.
 
 ## Push notifications (optional)
 

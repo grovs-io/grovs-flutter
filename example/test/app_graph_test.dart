@@ -78,6 +78,20 @@ void main() {
     expect(entries.first.code, contains('"grovs…56789"'));
   });
 
+  test(
+    'flags a missing API key instead of reporting a configured SDK',
+    () async {
+      messenger.setMockMethodCallHandler(config, (_) async => {'apiKey': ''});
+
+      await AppGraph.init(deviceName: '@Test phone');
+
+      final entry = AppGraph.log.entries.first;
+      expect(entry.state, LogState.warning);
+      expect(entry.title, 'SDK not configured');
+      expect(entry.detail, contains('AndroidManifest.xml'));
+    },
+  );
+
   test('logs an incoming deep link', () async {
     await AppGraph.init(deviceName: '@Test phone');
 
