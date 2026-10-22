@@ -447,7 +447,15 @@ Push campaigns need your Firebase or APNs credentials in the [Grovs dashboard](h
 
 ### iOS
 
-**1. Set the notification center delegate.** Grovs shows and counts its pushes through the system notification center. Set the delegate in `ios/Runner/AppDelegate.swift`:
+**1. Register for pushes.** In Xcode, add the Push Notifications capability to the Runner target. Then the app must ask for permission and register with APNs, or it never gets a token. `firebase_messaging` registers for you; call its `requestPermission()` for the permission. Without it, add this to `ios/Runner/AppDelegate.swift`:
+
+```swift
+// In application(_:didFinishLaunchingWithOptions:), before returning
+UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+application.registerForRemoteNotifications()
+```
+
+**2. Set the notification center delegate.** Grovs shows and counts its pushes through the system notification center. Set the delegate in `ios/Runner/AppDelegate.swift`:
 
 ```swift
 import UserNotifications
@@ -458,9 +466,9 @@ UNUserNotificationCenter.current().delegate = self
 
 Without this line, taps on Grovs pushes are not counted and Grovs pushes do not show while the app is open.
 
-**2. Token.** The plugin forwards the APNs token for you. You do not need to call `setPushToken` on iOS. If you do, it works, but it causes one extra attributes update.
+**3. Token.** Once the app is registered, the plugin forwards the APNs token for you. You do not need to call `setPushToken` on iOS. If you do, it works, but it causes one extra attributes update.
 
-**3. Foreground pushes.** While the app is open, Grovs pushes show as a banner, in the list and with sound (alert and sound on iOS 13). Pushes from other providers are left to your own code. They also show while the SDK is disabled. This is display only, nothing is tracked.
+**4. Foreground pushes.** While the app is open, Grovs pushes show as a banner, in the list and with sound (alert and sound on iOS 13). Pushes from other providers are left to your own code. They also show while the SDK is disabled. This is display only, nothing is tracked.
 
 With `firebase_messaging` 16.x, this needs one more step. That version answers every notification before Grovs can, so nothing shows by default. Either upgrade to `firebase_messaging` 17 or newer, or call this once after Firebase starts:
 
@@ -474,7 +482,7 @@ await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
 
 With 16.x this also shows other Firebase pushes while the app is open.
 
-**4. Images (optional).** To show a picture in the push, add a Notification Service Extension target to your Xcode project, then add this to the `Podfile`:
+**5. Images (optional).** To show a picture in the push, add a Notification Service Extension target to your Xcode project, then add this to the `Podfile`:
 
 ```ruby
 target 'NotificationService' do
@@ -499,12 +507,12 @@ Android push needs Firebase Messaging in your app. Add `firebase_messaging`, or 
 **1. Token.** When Firebase is in your app, the plugin fetches the first FCM token for you, and again each time the SDK is turned on. You can also send it yourself. To keep up with refreshes, listen to `onTokenRefresh`:
 
 ```dart
-final token = await FirebaseMessaging.instance.getToken();
-if (token != null) grovs.setPushToken(token);
-
 FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
   grovs.setPushToken(newToken);
 });
+
+final token = await FirebaseMessaging.instance.getToken();
+if (token != null) grovs.setPushToken(token);
 ```
 
 **2. Foreground pushes with `firebase_messaging`.** The plugin's messaging service runs at a lower priority, so `firebase_messaging` handles messages first. In that case Grovs does not draw pushes while the app is open. Draw them in your own `onMessage` handler, and use `isGrovsNotification` to tell Grovs pushes apart:
