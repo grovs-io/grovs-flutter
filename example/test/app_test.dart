@@ -138,6 +138,21 @@ void main() {
     expect(find.text('Grovs Test'), findsNothing);
   });
 
+  testWidgets('settings shows the native config and changes debug level', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Project'), findsOneWidget);
+    expect(find.text('Test'), findsOneWidget);
+    await tester.tap(find.text('Error'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('setDebugLevel')['level'], 'error');
+    expect(AppGraph.log.entries.first.title, 'Debug level ERROR');
+    expect(AppGraph.store.debugLevel, 'error');
+  });
+
   testWidgets('Generate link shows the result card and a log entry', (
     tester,
   ) async {

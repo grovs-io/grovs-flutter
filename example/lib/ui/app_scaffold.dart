@@ -10,6 +10,7 @@ import 'home/home_screen.dart';
 import 'in_app/in_app_screen.dart';
 import 'links/links_screen.dart';
 import 'logs/logs_panel.dart';
+import 'settings/settings_screen.dart';
 import 'tab_icons.dart';
 import 'theme.dart';
 
@@ -86,7 +87,7 @@ class _AppScaffoldState extends State<AppScaffold>
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: const RouteSettings(name: 'Settings'),
-        builder: (_) => const _SettingsScreen(),
+        builder: (_) => const SettingsScreen(),
       ),
     );
   }
@@ -270,38 +271,6 @@ class _TabBar extends StatelessWidget {
             for (final tab in AppTab.values)
               NavigationDestination(icon: TabIcon(tab.icon), label: tab.title),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsScreen extends StatelessWidget {
-  const _SettingsScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final c = GrovsColors.of(context);
-    return Scaffold(
-      backgroundColor: c.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(left: 4, right: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Back',
-                    icon: Icon(Icons.arrow_back, color: c.textMuted),
-                  ),
-                  const Expanded(child: ScreenTitle('Settings')),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );
