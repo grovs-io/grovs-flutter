@@ -6,6 +6,7 @@ import '../data/strings.dart';
 import 'controls/basics.dart';
 import 'controls/sheet.dart';
 import 'events/events_screen.dart';
+import 'in_app/in_app_screen.dart';
 import 'links/links_screen.dart';
 import 'logs/logs_panel.dart';
 import 'tab_icons.dart';
@@ -131,7 +132,7 @@ class _AppScaffoldState extends State<AppScaffold>
     ),
     AppTab.links => const LinksScreen(),
     AppTab.events => const EventsScreen(),
-    _ => _Placeholder(tab.title),
+    AppTab.inApp => const InAppScreen(),
   };
 }
 

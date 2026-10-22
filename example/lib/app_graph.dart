@@ -13,6 +13,7 @@ import 'data/settings_store.dart';
 import 'data/strings.dart';
 import 'native_config.dart';
 import 'ui/events/events_controller.dart';
+import 'ui/in_app/in_app_controller.dart';
 import 'ui/links/links_controller.dart';
 
 const pluginVersion = '3.1.1';
@@ -35,9 +36,11 @@ class AppGraph {
   static NativeConfig config = NativeConfig.unknown;
   static LinksController? _links;
   static EventsController? _events;
+  static InAppController? _inApp;
 
   static LinksController get links => _links!;
   static EventsController get events => _events!;
+  static InAppController get inApp => _inApp!;
 
   static final pushToken = ValueNotifier<String?>(null);
   static final sdkEnabled = ValueNotifier<bool>(true);
@@ -73,6 +76,8 @@ class AppGraph {
     _links = LinksController();
     _events?.dispose();
     _events = EventsController();
+    _inApp?.dispose();
+    _inApp = InAppController();
   }
 
   static void rerun(TestAction action) => unawaited(runner.run(action));
@@ -95,6 +100,8 @@ class AppGraph {
     _links = null;
     _events?.dispose();
     _events = null;
+    _inApp?.dispose();
+    _inApp = null;
     config = NativeConfig.unknown;
     pushToken.value = null;
     sdkEnabled.value = true;

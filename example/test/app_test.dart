@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:grovs_example/actions/log.dart';
 import 'package:grovs_example/app_graph.dart';
+import 'package:grovs_example/ui/in_app/in_app_screen.dart';
 import 'fake_grovs.dart';
 
 void main() {
@@ -240,5 +241,46 @@ void main() {
     await tester.tap(find.textContaining('Log \$4.99'));
     await tester.pumpAndSettle();
     expect(grovs.lastArgs('logCustomPurchase')['priceInCents'], 499);
+  });
+
+  testWidgets('in-app controls call the SDK and discard pauses', (
+    tester,
+  ) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('In-app'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard waiting'));
+    await tester.pumpAndSettle();
+    expect(grovs.lastArgs('discardInAppMessages')['dismissCurrent'], isFalse);
+    await tester.tap(find.text('Running'));
+    await tester.pumpAndSettle();
+    expect(grovs.methods.last, 'resumeInAppMessages');
+  });
+
+  testWidgets('in-app events are logged', (tester) async {
+    await grovs.startApp(tester);
+    await grovs.emitInApp({'type': 'shown', 'campaignId': '42'});
+    await tester.pumpAndSettle();
+    expect(find.text('Message 42 shown'), findsOneWidget);
+  });
+
+  testWidgets('the excluded screen opens as a named route', (tester) async {
+    await grovs.startApp(tester);
+    await tester.tap(find.text('In-app'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Open an excluded screen'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(InAppScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.text('Open an excluded screen'));
+    await tester.pumpAndSettle();
+    expect(find.text('excluded'), findsOneWidget);
+    expect(grovs.lastArgs('trackScreenView')['screenName'], 'ExcludedScreen');
   });
 }
