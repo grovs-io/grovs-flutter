@@ -60,28 +60,38 @@ class _PushSectionState extends State<PushSection> {
   }
 
   Future<void> _sendToken(FirebaseMessaging messaging) async {
-    try {
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      try {
         final token = await messaging.getAPNSToken();
         _setStatus(
           token == null
               ? 'APNs token not available yet'
               : 'APNs token sent by the plugin',
         );
-      } else {
-        final token = await messaging.getToken();
-        if (token != null) await _grovs.setPushToken(token);
-        _tokenRefreshSubscription = messaging.onTokenRefresh.listen((
-          token,
-        ) async {
-          try {
-            await _grovs.setPushToken(token);
-          } on GrovsException catch (e) {
-            _setStatus('Token refresh failed: ${e.message}');
-          }
-        });
-        _setStatus('FCM token sent');
+      } on FirebaseException catch (e) {
+        _setStatus('APNs token failed: ${e.message}');
       }
+      return;
+    }
+
+    if (!mounted) return;
+    _tokenRefreshSubscription = messaging.onTokenRefresh.listen(_setPushToken);
+    try {
+      final token = await messaging.getToken();
+      if (token == null) {
+        _setStatus('FCM token not available yet');
+      } else {
+        await _setPushToken(token);
+      }
+    } on FirebaseException catch (e) {
+      _setStatus('FCM token failed: ${e.message}');
+    }
+  }
+
+  Future<void> _setPushToken(String token) async {
+    try {
+      await _grovs.setPushToken(token);
+      _setStatus('FCM token sent');
     } on GrovsException catch (e) {
       _setStatus('Token failed: ${e.message}');
     }
