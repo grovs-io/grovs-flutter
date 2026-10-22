@@ -6,7 +6,9 @@ String? extractLinkPath(String input) {
   final afterScheme = schemeEnd < 0 ? clean : clean.substring(schemeEnd + 3);
   final hasHost = schemeEnd >= 0 || afterScheme.contains('/');
   final path = hasHost
-      ? (afterScheme.contains('/') ? afterScheme.substring(afterScheme.indexOf('/') + 1) : '')
+      ? (afterScheme.contains('/')
+            ? afterScheme.substring(afterScheme.indexOf('/') + 1)
+            : '')
       : afterScheme;
   for (final segment in path.split('/').reversed) {
     if (segment.trim().isNotEmpty) return segment;
@@ -35,7 +37,10 @@ String simctlCommand(String link) => 'xcrun simctl openurl booted "$link"';
 List<(String, String)> flatten(Map<String, Object?> map, [String prefix = '']) {
   return [
     for (final entry in map.entries)
-      ..._flattenEntry(prefix.isEmpty ? entry.key : '$prefix.${entry.key}', entry.value),
+      ..._flattenEntry(
+        prefix.isEmpty ? entry.key : '$prefix.${entry.key}',
+        entry.value,
+      ),
   ];
 }
 

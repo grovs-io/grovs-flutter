@@ -55,12 +55,18 @@ void main() {
 
   test('JSON round trip keeps types', () {
     final rows = parseKeyValues('{"s": "12", "n": 12, "b": true, "z": null}');
-    expect(rows.map((r) => r.resolvedType).toList(),
-        [ValueType.text, ValueType.number, ValueType.boolean, ValueType.text]);
+    expect(rows.map((r) => r.resolvedType).toList(), [
+      ValueType.text,
+      ValueType.number,
+      ValueType.boolean,
+      ValueType.text,
+    ]);
     expect(rows.first.value(), '12');
     expect(rows.last.raw, '');
-    expect(parseKeyValues(keyValuesToJson(rows)).map((r) => r.value()).toList(),
-        rows.map((r) => r.value()).toList());
+    expect(
+      parseKeyValues(keyValuesToJson(rows)).map((r) => r.value()).toList(),
+      rows.map((r) => r.value()).toList(),
+    );
   });
 
   test('parseKeyValues rejects non objects', () {
@@ -69,7 +75,10 @@ void main() {
   });
 
   test('store round trip keeps a null type as auto', () {
-    const rows = [KeyValue(key: 'a', raw: '1'), KeyValue(key: 'b', raw: '2', type: ValueType.text)];
+    const rows = [
+      KeyValue(key: 'a', raw: '1'),
+      KeyValue(key: 'b', raw: '2', type: ValueType.text),
+    ];
     final back = keyValuesFromStore(keyValuesToStore(rows));
     expect(back.first.type, isNull);
     expect(back.last.type, ValueType.text);

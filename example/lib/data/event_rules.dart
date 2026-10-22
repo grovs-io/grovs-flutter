@@ -27,11 +27,14 @@ const reservedEventNames = {
 const maxTags = 20;
 const maxTagLength = 255;
 
-bool isReservedEventName(String name) => reservedEventNames.contains(name.trim().toLowerCase());
+bool isReservedEventName(String name) =>
+    reservedEventNames.contains(name.trim().toLowerCase());
 
 String? eventNameError(String name) {
   if (name.trim().isEmpty) return 'Enter an event name';
-  if (isReservedEventName(name)) return '"${name.trim()}" is reserved by the SDK';
+  if (isReservedEventName(name)) {
+    return '"${name.trim()}" is reserved by the SDK';
+  }
   return null;
 }
 

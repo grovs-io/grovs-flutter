@@ -13,8 +13,15 @@ int? parseAmountToCents(String input) {
   return cents > _maxCents ? null : cents;
 }
 
-String formatCents(int cents) => '${cents ~/ 100}.${(cents % 100).toString().padLeft(2, '0')}';
+String formatCents(int cents) =>
+    '${cents ~/ 100}.${(cents % 100).toString().padLeft(2, '0')}';
 
-const _symbols = {'USD': '\$', 'EUR': '€', 'GBP': '£', 'RON': 'lei ', 'JPY': '¥'};
+const _symbols = {
+  'USD': '\$',
+  'EUR': '€',
+  'GBP': '£',
+  'RON': 'lei ',
+  'JPY': '¥',
+};
 
 String currencySymbol(String code) => _symbols[code] ?? '$code ';
