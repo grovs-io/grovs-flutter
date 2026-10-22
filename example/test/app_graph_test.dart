@@ -94,4 +94,33 @@ void main() {
     expect(entry.type, LogType.link);
     expect(entry.link, 'https://app.sqd.link/abc');
   });
+
+  test('logs SDK errors and in-app events from their streams', () async {
+    await AppGraph.init(deviceName: '@Test phone');
+
+    await messenger.handlePlatformMessage(
+      'grovs/errors',
+      const StandardMethodCodec().encodeSuccessEnvelope({
+        'code': 'network_request_failed',
+        'message': 'Offline',
+      }),
+      (_) {},
+    );
+    var entry = AppGraph.log.entries.first;
+    expect(entry.state, LogState.error);
+    expect(entry.title, 'network_request_failed');
+    expect(entry.detail, 'Offline');
+
+    await messenger.handlePlatformMessage(
+      'grovs/inapp',
+      const StandardMethodCodec().encodeSuccessEnvelope({
+        'type': 'shown',
+        'campaignId': 'c1',
+      }),
+      (_) {},
+    );
+    entry = AppGraph.log.entries.first;
+    expect(entry.type, LogType.inApp);
+    expect(entry.title, 'Message c1 shown');
+  });
 }
