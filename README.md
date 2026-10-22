@@ -374,6 +374,26 @@ final link = await grovs.generateLink(
 Share.share(link);
 ```
 
+### Link details
+
+Fetch the details of a link from its path, the last part of the link. For `https://yourapp.sqd.link/abc123` the path is `abc123`. Pass the path only, not the full URL.
+
+```dart
+try {
+  final details = await grovs.linkDetails('abc123');
+  print(details.title);
+  print(details.data);
+  print(details.tracking?.utmCampaign);
+} on GrovsException catch (e) {
+  // INVALID_ARGUMENT: the path is empty
+  // SDK_DISABLED: the SDK is disabled with setSDK(false)
+  // LINK_DETAILS_ERROR: the link was not found or the request failed
+  print('Error ${e.code}: ${e.message}');
+}
+```
+
+`details.raw` holds every field the backend sent, as received. Its numbers can be doubles on Android and ints on iOS; the typed fields are the same on both platforms.
+
 ## In-app messages
 
 > If in-app messages have **automatic display** enabled in your dashboard, they appear in your app without any additional code. The controls below are optional.
@@ -658,6 +678,7 @@ await Grovs().setScreenAliases({'/p': 'Product', '/c': 'Cart'});
 | `setUserAttributes(attributes)` | Set user attributes for analytics |
 | `setSDK(enabled)` | Enable or disable the SDK at runtime (consent) |
 | `generateLink(params)` | Generate a smart link |
+| `linkDetails(path)` | Fetch the details of a link from its path |
 | `logInAppPurchase(transactionId)` | Log a store purchase |
 | `logCustomPurchase(type, priceInCents, currency, productId, startDate)` | Log a custom purchase |
 | `track(name, {properties, tags})` | Log a custom event |

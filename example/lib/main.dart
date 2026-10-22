@@ -184,6 +184,32 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  Future<void> showLinkDetails(BuildContext context) async {
+    String message;
+    try {
+      final path = Uri.parse(_generatedLink).pathSegments.last;
+      final details = await _grovs.linkDetails(path);
+      message =
+          'Title: ${details.title}\nPath: ${details.path}\nData: ${details.data}';
+    } on GrovsException catch (e) {
+      message = '${e.code}: ${e.message}';
+    }
+    if (!context.mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Link details'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -321,6 +347,14 @@ class _MyAppState extends State<MyApp> {
                             },
                             icon: const Icon(Icons.link),
                             label: const Text('Open in App'),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Builder(
+                          builder: (context) => ElevatedButton.icon(
+                            onPressed: () => showLinkDetails(context),
+                            icon: const Icon(Icons.info_outline),
+                            label: const Text('Get Link Details'),
                           ),
                         ),
                       ],
