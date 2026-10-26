@@ -6,7 +6,7 @@ Added:
 * In-app messages: `pauseInAppMessages`, `resumeInAppMessages`, `discardInAppMessages`, `setInAppExcludedScreens`, `setInAppDebugLogging` and the `onInAppMessage` stream of `InAppMessageEvent`.
 * Push campaigns: `isGrovsNotification` and `handleNotificationOpen`. Taps on Grovs pushes arrive on `onDeeplinkReceived`, with `link` null when the push has no link.
 * iOS: the push token is forwarded automatically, taps on Grovs pushes are counted, and Grovs pushes show while the app is open. Set `UNUserNotificationCenter.current().delegate = self` in your `AppDelegate`.
-* Android: the first FCM token is fetched automatically when Firebase is present.
+* Android: when Firebase is present, the plugin fetches the FCM token and sends it to Grovs at start and each time the SDK is turned on. Nothing is sent while the SDK is disabled.
 
 Changed:
 
