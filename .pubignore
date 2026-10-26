@@ -74,6 +74,7 @@ coverage/
 
 # Misc
 /doc/plans/
+/docs/superpowers/
 *.log
 *.pyc
 *.swp

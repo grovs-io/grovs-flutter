@@ -12,6 +12,7 @@
 .swiftpm/
 migrate_working_dir/
 /doc/plans/
+/docs/superpowers/
 
 # IntelliJ related
 *.iml
