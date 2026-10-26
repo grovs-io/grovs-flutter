@@ -69,6 +69,10 @@ example/.dart_tool/
 example/.flutter-plugins
 example/.flutter-plugins-dependencies
 
+# Firebase config for the example app
+example/android/app/google-services.json
+example/ios/Runner/GoogleService-Info.plist
+
 # Test coverage
 coverage/
 
